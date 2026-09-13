@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Product } from '../../data/mockData';
+import { Product } from '../../services/productService';
 import { CATEGORIES } from '../../utils/constants';
 import { ProductCard } from './ProductCard';
 import { Modal } from '../ui/Modal';
@@ -34,13 +34,17 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
         const matchesSearch =
           !searchQuery ||
           p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.description.toLowerCase().includes(searchQuery.toLowerCase());
+          p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (p.presentacion && p.presentacion.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (p.marca && p.marca.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (p.sabor && p.sabor.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (p.tamano && p.tamano.toLowerCase().includes(searchQuery.toLowerCase()));
         return matchesCategory && matchesSearch;
       })
       .sort((a, b) => {
         if (sortBy === 'price-low') return a.price - b.price;
         if (sortBy === 'price-high') return b.price - a.price;
-        if (sortBy === 'rating') return b.rating - a.rating;
+        if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
         return 0; // recommended
       });
   }, [products, selectedCategory, searchQuery, sortBy]);
@@ -176,11 +180,40 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
               {selectedProduct.description}
             </p>
 
+            {/* Product Variants / Specifications */}
+            {(selectedProduct.marca || selectedProduct.sabor || selectedProduct.presentacion || selectedProduct.tamano) && (
+              <div className="bg-amber-50/70 dark:bg-stone-950 p-3.5 rounded-2xl border border-amber-200/80 dark:border-stone-800 space-y-2">
+                <h4 className="text-xs font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider">Variedad & Especificaciones</h4>
+                <div className="flex flex-wrap gap-2 text-xs font-medium">
+                  {selectedProduct.marca && (
+                    <span className="bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20 px-2.5 py-1 rounded-xl">
+                      <strong>Marca:</strong> {selectedProduct.marca}
+                    </span>
+                  )}
+                  {selectedProduct.sabor && (
+                    <span className="bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 px-2.5 py-1 rounded-xl">
+                      <strong>Sabor:</strong> {selectedProduct.sabor}
+                    </span>
+                  )}
+                  {selectedProduct.presentacion && (
+                    <span className="bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/20 px-2.5 py-1 rounded-xl">
+                      <strong>Presentación:</strong> {selectedProduct.presentacion}
+                    </span>
+                  )}
+                  {selectedProduct.tamano && (
+                    <span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 px-2.5 py-1 rounded-xl">
+                      <strong>Tamaño:</strong> {selectedProduct.tamano}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Ingredients list */}
             <div>
               <h4 className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-2">Ingredientes Selección</h4>
               <div className="flex flex-wrap gap-2">
-                {selectedProduct.ingredients.map((ing, i) => (
+                {(selectedProduct.ingredients || []).map((ing, i) => (
                   <span
                     key={i}
                     className="inline-flex items-center gap-1 bg-amber-100/60 dark:bg-stone-950 text-stone-800 dark:text-stone-300 text-xs px-3 py-1 rounded-xl border border-amber-200/80 dark:border-stone-800"

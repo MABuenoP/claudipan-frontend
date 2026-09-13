@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { productService } from '../services/productService';
-import { Product } from '../data/mockData';
+import { productService, Product } from '../services/productService';
 import { ProductCatalog } from '../components/product/ProductCatalog';
 import { Spinner } from '../components/ui/Spinner';
 import { Store, Flame } from 'lucide-react';
@@ -18,8 +17,10 @@ export const Catalog: React.FC = () => {
     const loadProducts = async () => {
       setIsLoading(true);
       try {
-        const data = await productService.getAllProducts();
-        setProducts(data);
+        const res = await productService.getAllProducts();
+        if (res.success && res.data) {
+          setProducts(res.data);
+        }
       } finally {
         setIsLoading(false);
       }

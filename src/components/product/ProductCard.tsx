@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Star, ShoppingBag, Eye, Sparkles } from 'lucide-react';
-import { Product } from '../../data/mockData';
+import { Product } from '../../services/productService';
 import { formatCurrency } from '../../utils/helpers';
 import { useCart } from '../../hooks/useCart';
 import { Button } from '../ui/Button';
@@ -77,6 +77,30 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView }
           <h3 className="font-heading font-bold text-base text-stone-900 dark:text-stone-100 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors line-clamp-1">
             {product.name}
           </h3>
+
+          {/* Variant attributes badges */}
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {product.marca && (
+              <span className="bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                {product.marca}
+              </span>
+            )}
+            {product.sabor && (
+              <span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                {product.sabor}
+              </span>
+            )}
+            {product.presentacion && (
+              <span className="bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                {product.presentacion}
+              </span>
+            )}
+            {product.tamano && (
+              <span className="bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/20 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                {product.tamano}
+              </span>
+            )}
+          </div>
 
           <p className="text-xs text-stone-600 dark:text-stone-400 mt-1.5 line-clamp-2 leading-relaxed">
             {product.description}

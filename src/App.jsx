@@ -12,6 +12,9 @@ import { Catalog } from './pages/Catalog';
 import { Cart } from './pages/Cart';
 import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/Login';
+import { MyDebts } from './pages/MyDebts';
+import { Accounting } from './pages/Accounting';
+import { AdminTables } from './pages/AdminTables';
 
 export const App = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -33,6 +36,9 @@ export const App = () => {
           <Route path="/cart" element={<Cart />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/mis-deudas" element={<MyDebts />} />
+          <Route path="/contabilidad" element={<Accounting />} />
+          <Route path="/admin/tables" element={<AdminTables />} />
         </Routes>
       </main>
 

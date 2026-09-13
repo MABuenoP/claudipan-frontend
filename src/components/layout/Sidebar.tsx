@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Store, ShoppingBag, LayoutDashboard, LogIn, LogOut, X, Sun, Moon } from 'lucide-react';
+import { Home, Store, ShoppingBag, LayoutDashboard, LogIn, LogOut, X, Sun, Moon, CreditCard, DollarSign, Settings, User } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { CATEGORIES } from '../../utils/constants';
@@ -108,18 +108,67 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             <ShoppingBag className="w-5 h-5 text-amber-700 dark:text-amber-400" />
             Carrito de Compras
           </Link>
-          <Link
-            to="/dashboard"
-            onClick={onClose}
-            className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-medium transition-all ${
-              isActive('/dashboard')
-                ? 'bg-amber-500/20 text-amber-800 dark:text-amber-400 border border-amber-500/30 font-bold'
-                : 'text-stone-700 dark:text-stone-300 hover:bg-amber-100/50 dark:hover:bg-stone-900 hover:text-stone-900 dark:hover:text-stone-100'
-            }`}
-          >
-            <LayoutDashboard className="w-5 h-5 text-amber-700 dark:text-amber-400" />
-            Panel de Usuario
-          </Link>
+
+          {isAuthenticated && (
+            <Link
+              to="/dashboard"
+              onClick={onClose}
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-medium transition-all ${
+                isActive('/dashboard')
+                  ? 'bg-amber-500/20 text-amber-800 dark:text-amber-400 border border-amber-500/30 font-bold'
+                  : 'text-stone-700 dark:text-stone-300 hover:bg-amber-100/50 dark:hover:bg-stone-900 hover:text-stone-900 dark:hover:text-stone-100'
+              }`}
+            >
+              <LayoutDashboard className="w-5 h-5 text-amber-700 dark:text-amber-400" />
+              Gestión de Pedidos
+            </Link>
+          )}
+
+          {/* Role specific links */}
+          {user?.rol === 'Cliente' && (
+            <Link
+              to="/mis-deudas"
+              onClick={onClose}
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-medium transition-all ${
+                isActive('/mis-deudas')
+                  ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 border border-emerald-500/30 font-bold'
+                  : 'text-stone-700 dark:text-stone-300 hover:bg-amber-100/50 dark:hover:bg-stone-900'
+              }`}
+            >
+              <CreditCard className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              Mis Deudas / Crédito
+            </Link>
+          )}
+
+          {(user?.rol === 'Secretaria' || user?.rol === 'Administrador') && (
+            <Link
+              to="/contabilidad"
+              onClick={onClose}
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-medium transition-all ${
+                isActive('/contabilidad')
+                  ? 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-400 border border-emerald-500/30 font-bold'
+                  : 'text-stone-700 dark:text-stone-300 hover:bg-amber-100/50 dark:hover:bg-stone-900'
+              }`}
+            >
+              <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              Contabilidad & Cartera
+            </Link>
+          )}
+
+          {(user?.rol === 'Tecnico' || user?.rol === 'Administrador') && (
+            <Link
+              to="/admin/tables"
+              onClick={onClose}
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-medium transition-all ${
+                isActive('/admin/tables')
+                  ? 'bg-purple-500/20 text-purple-800 dark:text-purple-400 border border-purple-500/30 font-bold'
+                  : 'text-stone-700 dark:text-stone-300 hover:bg-amber-100/50 dark:hover:bg-stone-900'
+              }`}
+            >
+              <Settings className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              CRUD Tablas / Sistema
+            </Link>
+          )}
         </nav>
 
         {/* Categories Quick Links */}
@@ -142,13 +191,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
         {/* User Auth Footer */}
         <div className="mt-auto pt-4 border-t border-amber-200/80 dark:border-stone-800">
-          {isAuthenticated ? (
+          {isAuthenticated && user ? (
             <div className="space-y-3">
               <div className="flex items-center gap-3 p-3 bg-amber-100/60 dark:bg-stone-900/80 rounded-2xl border border-amber-200/80 dark:border-stone-800">
-                <img src={user?.avatar} alt={user?.name} className="w-10 h-10 rounded-xl object-cover" />
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-800 dark:text-amber-300 font-bold text-sm flex items-center justify-center border border-amber-500/30 shrink-0">
+                  {user.nombre.charAt(0).toUpperCase()}
+                </div>
                 <div className="overflow-hidden">
-                  <p className="text-sm font-semibold text-stone-900 dark:text-stone-100 truncate">{user?.name}</p>
-                  <p className="text-[10px] text-amber-700 dark:text-amber-400 font-bold uppercase tracking-wider">{user?.role}</p>
+                  <p className="text-sm font-semibold text-stone-900 dark:text-stone-100 truncate">{user.nombre}</p>
+                  <p className="text-[10px] text-amber-700 dark:text-amber-400 font-bold uppercase tracking-wider">{user.rol}</p>
                 </div>
               </div>
               <button
@@ -178,3 +229,4 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     </div>
   );
 };
+

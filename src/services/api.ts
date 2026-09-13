@@ -1,36 +1,95 @@
-/**
- * Base Simulated API Client with latency simulation and error boundaries
- */
+import { STORAGE_KEYS } from '../utils/constants';
 
-const LATENCY_MS = 250;
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'https://api.pedroleyvasenador26.org/api';
 
 export interface ApiResponse<T> {
   success: boolean;
-  data: T;
+  data?: T;
   message?: string;
+  errors?: string[];
+}
+
+function getAuthHeader(): Record<string, string> {
+  const token = localStorage.getItem('claudipan_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export const api = {
-  get: async <T>(fetcher: () => T, customLatency = LATENCY_MS): Promise<ApiResponse<T>> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          success: true,
-          data: fetcher(),
-        });
-      }, customLatency);
-    });
+  get: async <T>(endpoint: string): Promise<ApiResponse<T>> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
+        },
+      });
+      const json = await response.json();
+      return json;
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error?.message || 'Error de conexión con el servidor',
+      };
+    }
   },
 
-  post: async <T, B>(endpoint: string, body: B, result: T): Promise<ApiResponse<T>> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          success: true,
-          data: result,
-          message: `Acción realizada con éxito en ${endpoint}`,
-        });
-      }, LATENCY_MS);
-    });
+  post: async <T, B>(endpoint: string, body: B): Promise<ApiResponse<T>> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
+        },
+        body: JSON.stringify(body),
+      });
+      const json = await response.json();
+      return json;
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error?.message || 'Error de conexión con el servidor',
+      };
+    }
+  },
+
+  put: async <T, B>(endpoint: string, body: B): Promise<ApiResponse<T>> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
+        },
+        body: JSON.stringify(body),
+      });
+      const json = await response.json();
+      return json;
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error?.message || 'Error de conexión con el servidor',
+      };
+    }
+  },
+
+  delete: async <T>(endpoint: string): Promise<ApiResponse<T>> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
+        },
+      });
+      const json = await response.json();
+      return json;
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error?.message || 'Error de conexión con el servidor',
+      };
+    }
   },
 };

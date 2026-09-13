@@ -1,12 +1,22 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, ArrowRight, ShieldCheck, Flame, Clock, Award } from 'lucide-react';
-import { MOCK_PRODUCTS } from '../data/mockData';
+import { productService, Product } from '../services/productService';
 import { ProductCard } from '../components/product/ProductCard';
 import { Button } from '../components/ui/Button';
 
 export const Home: React.FC = () => {
-  const featuredProducts = MOCK_PRODUCTS.filter((p) => p.isPopular).slice(0, 4);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    const fetchFeatured = async () => {
+      const res = await productService.getAllProducts();
+      if (res.success && res.data) {
+        setFeaturedProducts(res.data.slice(0, 4));
+      }
+    };
+    fetchFeatured();
+  }, []);
 
   return (
     <div className="space-y-20 pb-16">
