@@ -34,13 +34,13 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
       />
 
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-xl bg-stone-900 border border-amber-500/30 rounded-3xl shadow-2xl overflow-hidden z-10 animate-slide-up text-stone-100">
+      <div className="relative w-full max-w-xl bg-white dark:bg-stone-900 border border-amber-300/80 dark:border-amber-500/30 rounded-3xl shadow-2xl overflow-hidden z-10 animate-slide-up text-stone-900 dark:text-stone-100 transition-colors duration-300">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-stone-800 bg-stone-950/40">
-          <h3 className="text-xl font-heading font-bold text-amber-400">{title}</h3>
+        <div className="flex items-center justify-between p-6 border-b border-amber-200/80 dark:border-stone-800 bg-amber-50/50 dark:bg-stone-950/40">
+          <h3 className="text-xl font-heading font-bold text-amber-700 dark:text-amber-400">{title}</h3>
           <button
             onClick={onClose}
-            className="p-2 text-stone-400 hover:text-stone-100 hover:bg-stone-800 rounded-full transition-all"
+            className="p-2 text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-amber-100 dark:hover:bg-stone-800 rounded-full transition-all"
             aria-label="Cerrar ventana"
           >
             <X className="w-5 h-5" />

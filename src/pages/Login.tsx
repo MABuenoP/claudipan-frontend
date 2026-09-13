@@ -18,48 +18,48 @@ export const Login: React.FC = () => {
 
   return (
     <div className="max-w-md mx-auto px-4 py-16">
-      <div className="bg-stone-900/90 border border-amber-500/20 p-8 rounded-3xl space-y-6 backdrop-blur-md shadow-2xl">
+      <div className="bg-white dark:bg-stone-900/90 border border-amber-300/80 dark:border-amber-500/20 p-8 rounded-3xl space-y-6 backdrop-blur-md shadow-xl transition-colors duration-300">
         
         {/* Header logo */}
         <div className="text-center space-y-2">
           <img src="/logo.png" alt="Claudipan" className="w-16 h-16 rounded-2xl mx-auto border border-amber-500/30 object-cover" />
-          <h1 className="text-2xl font-heading font-extrabold text-stone-100">Iniciar Sesión</h1>
-          <p className="text-xs text-stone-400">Bienvenido de vuelta a Claudipan Artesanal</p>
+          <h1 className="text-2xl font-heading font-extrabold text-stone-900 dark:text-stone-100">Iniciar Sesión</h1>
+          <p className="text-xs text-stone-600 dark:text-stone-400">Bienvenido de vuelta a Claudipan Artesanal</p>
         </div>
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
-            <label className="text-xs font-bold text-stone-300 uppercase tracking-wider">Correo Electrónico</label>
+            <label className="text-xs font-bold text-stone-700 dark:text-stone-300 uppercase tracking-wider">Correo Electrónico</label>
             <div className="relative">
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-stone-950 text-stone-100 placeholder-stone-500 text-xs px-4 py-3 pl-10 rounded-2xl border border-stone-800 focus:outline-none focus:border-amber-500"
+                className="w-full bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 placeholder-stone-400 dark:placeholder-stone-500 text-xs px-4 py-3 pl-10 rounded-2xl border border-amber-200/80 dark:border-stone-800 focus:outline-none focus:border-amber-500"
               />
-              <User className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
+              <User className="w-4 h-4 text-stone-400 dark:text-stone-400 absolute left-3.5 top-3.5" />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-stone-300 uppercase tracking-wider">Contraseña</label>
+            <label className="text-xs font-bold text-stone-700 dark:text-stone-300 uppercase tracking-wider">Contraseña</label>
             <div className="relative">
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-stone-950 text-stone-100 placeholder-stone-500 text-xs px-4 py-3 pl-10 rounded-2xl border border-stone-800 focus:outline-none focus:border-amber-500"
+                className="w-full bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 placeholder-stone-400 dark:placeholder-stone-500 text-xs px-4 py-3 pl-10 rounded-2xl border border-amber-200/80 dark:border-stone-800 focus:outline-none focus:border-amber-500"
               />
-              <Lock className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
+              <Lock className="w-4 h-4 text-stone-400 dark:text-stone-400 absolute left-3.5 top-3.5" />
             </div>
           </div>
 
           <Button
             type="submit"
-            variant="primary"
+            variant="secondary"
             size="lg"
             className="w-full"
             isLoading={isLoading}
@@ -70,11 +70,11 @@ export const Login: React.FC = () => {
         </form>
 
         {/* Demo info hint */}
-        <div className="p-4 bg-stone-950 border border-stone-800 rounded-2xl space-y-1 text-center">
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-400">
+        <div className="p-4 bg-amber-50 dark:bg-stone-950 border border-amber-200/80 dark:border-stone-800 rounded-2xl space-y-1 text-center">
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 dark:text-amber-400">
             <Sparkles className="w-3.5 h-3.5" /> Cuenta Demo Rápida
           </span>
-          <p className="text-[11px] text-stone-400">
+          <p className="text-[11px] text-stone-600 dark:text-stone-400">
             Credenciales precargadas automáticamente para pruebas directas.
           </p>
         </div>

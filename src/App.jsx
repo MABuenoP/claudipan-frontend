@@ -18,7 +18,7 @@ export const App = () => {
   const { toastMessage, dismissToast } = useCart();
 
   return (
-    <div className="min-h-screen flex flex-col bg-stone-950 text-stone-100 font-sans">
+    <div className="min-h-screen flex flex-col bg-[#FAF6ED] dark:bg-stone-950 text-stone-900 dark:text-stone-100 font-sans transition-colors duration-300">
       {/* Top Navbar */}
       <Navbar onToggleSidebar={() => setSidebarOpen(true)} />
 
