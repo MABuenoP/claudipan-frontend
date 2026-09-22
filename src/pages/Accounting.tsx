@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, TrendingUp, Users, PlusCircle, RefreshCw, AlertCircle, ArrowDownLeft, ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { 
+  DollarSign, TrendingUp, Users, PlusCircle, RefreshCw, AlertCircle, 
+  ArrowDownLeft, ArrowUpRight, CheckCircle2, Search, X, FileSpreadsheet, ChevronDown 
+} from 'lucide-react';
 import { contabilidadService, ResumenContable } from '../services/contabilidadService';
 import { pedidoService, TransaccionDeuda } from '../services/pedidoService';
 import { authService, UsuarioAdmin } from '../services/authService';
 import { Pagination } from '../components/ui/Pagination';
+import { exportToExcel } from '../utils/excelExport';
+import { Button } from '../components/ui/Button';
 
 export const Accounting: React.FC = () => {
   const [resumen, setResumen] = useState<ResumenContable | null>(null);
@@ -12,6 +17,11 @@ export const Accounting: React.FC = () => {
   
   const [loading, setLoading] = useState(true);
   const [isAbonoModalOpen, setIsAbonoModalOpen] = useState(false);
+  
+  // Search and mobile view
+  const [searchInput, setSearchInput] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [visibleMobile, setVisibleMobile] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 10;
 
@@ -69,6 +79,35 @@ export const Accounting: React.FC = () => {
     }
   };
 
+  const filteredTransacciones = transacciones.filter(t => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      (t.usuarioNombre && t.usuarioNombre.toLowerCase().includes(term)) ||
+      (t.concepto && t.concepto.toLowerCase().includes(term)) ||
+      (t.tipo && t.tipo.toLowerCase().includes(term)) ||
+      (t.pedidoId && t.pedidoId.toString().includes(term))
+    );
+  });
+
+  const handleExportExcel = () => {
+    exportToExcel<TransaccionDeuda>({
+      filename: 'Movimientos_Contables_Cartera_Claudipan',
+      sheetName: 'Libro Diario Cartera',
+      title: 'Reporte Oficial de Movimientos de Cartera y Abonos - Claudipan',
+      data: filteredTransacciones,
+      columns: [
+        { header: 'ID Movimiento', accessor: (t) => `#${t.id}`, width: 14 },
+        { header: 'Fecha', accessor: (t) => new Date(t.fecha).toLocaleString('es-CO'), width: 20 },
+        { header: 'Tipo', accessor: (t) => t.tipo === 'Cargo_Deuda' ? 'Cargo a Crédito' : 'Abono Recibido', width: 18 },
+        { header: 'Cliente', accessor: (t) => t.usuarioNombre || `Usuario #${t.usuarioId}`, width: 28 },
+        { header: 'Concepto / Detalle', accessor: (t) => t.concepto, width: 32 },
+        { header: 'Pedido Relacionado', accessor: (t) => t.pedidoId ? `#${t.pedidoId}` : '-', width: 16 },
+        { header: 'Monto ($ COP)', accessor: (t) => t.monto, width: 18 },
+      ],
+    });
+  };
+
   const selectedUserObj = usuarios.find(u => u.id === Number(selectedUsuarioId));
 
   return (
@@ -82,14 +121,14 @@ export const Accounting: React.FC = () => {
               Sistema Contable y Cartera
             </h1>
             <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">
-              Módulo exclusivo de Secretaria y Administración para gestión de ventas, cobros y abonos.
+              Módulo exclusivo de Contabilidad, Gerencia y Administración para gestión de cartera, cobros y abonos.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <button
               onClick={fetchData}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white dark:bg-stone-900 border border-amber-200/80 dark:border-stone-800 text-xs font-bold text-stone-700 dark:text-stone-300 hover:border-amber-500 transition-all shadow-sm"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white dark:bg-stone-900 border border-amber-200/80 dark:border-stone-800 text-xs font-bold text-stone-700 dark:text-stone-300 hover:border-amber-500 transition-all shadow-sm cursor-pointer"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-amber-600' : ''}`} />
               Refrescar
@@ -152,8 +191,8 @@ export const Accounting: React.FC = () => {
         </div>
 
         {/* Transactions list */}
-        <div className="bg-white dark:bg-stone-900 rounded-3xl border border-amber-200/80 dark:border-stone-800 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-amber-200/80 dark:border-stone-800 flex items-center justify-between">
+        <div className="bg-white dark:bg-stone-900 rounded-3xl border border-amber-200/80 dark:border-stone-800 shadow-sm overflow-hidden space-y-4">
+          <div className="p-6 border-b border-amber-200/80 dark:border-stone-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-heading font-bold text-stone-900 dark:text-stone-100">
                 Libro Diario de Movimientos de Cartera
@@ -162,74 +201,176 @@ export const Accounting: React.FC = () => {
                 Historial general de cargos a crédito y abonos recibidos
               </p>
             </div>
+
+            {/* Top Bar: Search on Left + Export on Right */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setSearchTerm(searchInput);
+                  setCurrentPage(1);
+                }}
+                className="flex items-center gap-2"
+              >
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar cliente, concepto..."
+                    value={searchInput}
+                    onChange={(e) => {
+                      setSearchInput(e.target.value);
+                      if (e.target.value === '') setSearchTerm('');
+                    }}
+                    className="w-56 pl-9 pr-8 py-2 bg-stone-50 dark:bg-stone-950 border border-amber-200/80 dark:border-stone-800 rounded-2xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {searchInput && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchInput('');
+                        setSearchTerm('');
+                      }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  className="bg-amber-800 hover:bg-amber-700 text-white font-extrabold px-3 whitespace-nowrap"
+                >
+                  Buscar
+                </Button>
+              </form>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportExcel}
+                className="text-emerald-700 dark:text-emerald-300 border-emerald-600 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 dark:hover:text-white cursor-pointer shadow-sm whitespace-nowrap"
+              >
+                <FileSpreadsheet className="w-4 h-4 mr-1 text-emerald-600" /> Exportar a Excel
+              </Button>
+            </div>
           </div>
 
           {loading ? (
             <div className="p-12 text-center text-stone-500 dark:text-stone-400 text-sm">
               Cargando movimientos contables...
             </div>
-          ) : transacciones.length === 0 ? (
+          ) : filteredTransacciones.length === 0 ? (
             <div className="p-12 text-center text-stone-500 dark:text-stone-400 text-sm space-y-2">
               <AlertCircle className="w-8 h-8 mx-auto text-amber-500 opacity-60" />
-              <p>No se registran movimientos de cartera aún.</p>
+              <p>No se registran movimientos con los filtros aplicados.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-stone-700 dark:text-stone-300">
-                <thead className="bg-amber-500/10 dark:bg-stone-800/80 text-xs uppercase font-extrabold text-stone-600 dark:text-stone-400 border-b border-amber-200/80 dark:border-stone-800">
-                  <tr>
-                    <th className="py-3.5 px-6">Tipo</th>
-                    <th className="py-3.5 px-6">Cliente</th>
-                    <th className="py-3.5 px-6">Concepto</th>
-                    <th className="py-3.5 px-6">Pedido</th>
-                    <th className="py-3.5 px-6">Fecha</th>
-                    <th className="py-3.5 px-6 text-right">Monto</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-amber-100 dark:divide-stone-800">
-                  {transacciones.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((t) => (
-                    <tr key={t.id} className="hover:bg-amber-50/50 dark:hover:bg-stone-800/40 transition-colors">
-                      <td className="py-4 px-6 font-bold">
-                        {t.tipo === 'Cargo_Deuda' ? (
-                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-extrabold bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20">
-                            <ArrowUpRight className="w-3.5 h-3.5" /> Cargo
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-extrabold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                            <ArrowDownLeft className="w-3.5 h-3.5" /> Abono
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-4 px-6 font-bold text-stone-900 dark:text-stone-100">
+            <div>
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left text-sm text-stone-700 dark:text-stone-300">
+                  <thead className="bg-amber-500/10 dark:bg-stone-800/80 text-xs uppercase font-extrabold text-stone-600 dark:text-stone-400 border-b border-amber-200/80 dark:border-stone-800">
+                    <tr>
+                      <th className="py-3.5 px-6">Tipo</th>
+                      <th className="py-3.5 px-6">Cliente</th>
+                      <th className="py-3.5 px-6">Concepto</th>
+                      <th className="py-3.5 px-6">Pedido</th>
+                      <th className="py-3.5 px-6">Fecha</th>
+                      <th className="py-3.5 px-6 text-right">Monto</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-amber-100 dark:divide-stone-800">
+                    {filteredTransacciones.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((t) => (
+                      <tr key={t.id} className="hover:bg-amber-50/50 dark:hover:bg-stone-800/40 transition-colors">
+                        <td className="py-4 px-6 font-bold">
+                          {t.tipo === 'Cargo_Deuda' ? (
+                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-extrabold bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20">
+                              <ArrowUpRight className="w-3.5 h-3.5" /> Cargo
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-extrabold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                              <ArrowDownLeft className="w-3.5 h-3.5" /> Abono
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-4 px-6 font-bold text-stone-900 dark:text-stone-100">
+                          {t.usuarioNombre || `Usuario #${t.usuarioId}`}
+                        </td>
+                        <td className="py-4 px-6 text-stone-700 dark:text-stone-300">
+                          {t.concepto}
+                        </td>
+                        <td className="py-4 px-6 text-stone-500 dark:text-stone-400">
+                          {t.pedidoId ? `#${t.pedidoId}` : '-'}
+                        </td>
+                        <td className="py-4 px-6 text-stone-500 dark:text-stone-400 text-xs">
+                          {new Date(t.fecha).toLocaleString('es-CO')}
+                        </td>
+                        <td className={`py-4 px-6 text-right font-extrabold ${
+                          t.tipo === 'Cargo_Deuda' ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'
+                        }`}>
+                          {t.tipo === 'Cargo_Deuda' ? '+' : '-'}${t.monto.toLocaleString('es-CO')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                <div className="p-4 border-t border-amber-200/80 dark:border-stone-800">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalItems={filteredTransacciones.length}
+                    pageSize={PAGE_SIZE}
+                    onPageChange={setCurrentPage}
+                    itemLabel="movimientos contables"
+                  />
+                </div>
+              </div>
+
+              {/* Mobile CardView (10 en 10) */}
+              <div className="md:hidden p-4 space-y-3">
+                {filteredTransacciones.slice(0, visibleMobile).map((t) => (
+                  <div key={t.id} className="p-4 rounded-2xl bg-amber-50/40 dark:bg-stone-950 border border-amber-200/60 dark:border-stone-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-stone-900 dark:text-stone-100 text-sm">
                         {t.usuarioNombre || `Usuario #${t.usuarioId}`}
-                      </td>
-                      <td className="py-4 px-6 text-stone-700 dark:text-stone-300">
-                        {t.concepto}
-                      </td>
-                      <td className="py-4 px-6 text-stone-500 dark:text-stone-400">
-                        {t.pedidoId ? `#${t.pedidoId}` : '-'}
-                      </td>
-                      <td className="py-4 px-6 text-stone-500 dark:text-stone-400 text-xs">
-                        {new Date(t.fecha).toLocaleString('es-CO')}
-                      </td>
-                      <td className={`py-4 px-6 text-right font-extrabold ${
-                        t.tipo === 'Cargo_Deuda' ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'
+                      </span>
+                      {t.tipo === 'Cargo_Deuda' ? (
+                        <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20">
+                          Cargo
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                          Abono
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-stone-600 dark:text-stone-400">{t.concepto}</p>
+                    <div className="flex items-center justify-between pt-1 border-t border-amber-200/40 dark:border-stone-800 text-xs">
+                      <span className="text-[10px] text-stone-400">{new Date(t.fecha).toLocaleString('es-CO')}</span>
+                      <span className={`font-mono font-black text-sm ${
+                        t.tipo === 'Cargo_Deuda' ? 'text-red-600' : 'text-emerald-600'
                       }`}>
                         {t.tipo === 'Cargo_Deuda' ? '+' : '-'}${t.monto.toLocaleString('es-CO')}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </span>
+                    </div>
+                  </div>
+                ))}
 
-              <div className="p-4 border-t border-amber-200/80 dark:border-stone-800">
-                <Pagination
-                  currentPage={currentPage}
-                  totalItems={transacciones.length}
-                  pageSize={PAGE_SIZE}
-                  onPageChange={setCurrentPage}
-                  itemLabel="movimientos contables"
-                />
+                {visibleMobile < filteredTransacciones.length && (
+                  <div className="pt-2 text-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setVisibleMobile(prev => prev + 10)}
+                      className="w-full text-amber-700 dark:text-amber-400 border-amber-500 font-bold"
+                    >
+                      <ChevronDown className="w-4 h-4 mr-1" /> Cargar 10 movimientos más ({visibleMobile} de {filteredTransacciones.length})
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           )}

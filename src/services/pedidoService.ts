@@ -24,8 +24,10 @@ export interface Pedido {
   total: number;
   montoFiado: number;
   estado: string;
-  tipoPago: 'Efectivo' | 'Transferencia' | 'Tarjeta' | 'Credito_Fiado' | string;
+  tipoPago: 'Efectivo' | 'Nequi' | 'Transferencia' | 'Tarjeta' | 'Credito_Fiado' | string;
   estadoPago: 'Pagado' | 'Pendiente_Credito' | string;
+  comprobanteBase64?: string;
+  referenciaPago?: string;
   direccionEntrega?: string;
   observaciones?: string;
   detalles: DetallePedido[];
@@ -42,6 +44,8 @@ export interface TransaccionDeuda {
   tipo: string;
   concepto: string;
   metodoPagoAbono?: string;
+  comprobanteBase64?: string;
+  referenciaPago?: string;
   fecha: string;
 }
 
@@ -56,7 +60,18 @@ export interface PedidoCreateRequest {
   direccionEntrega?: string;
   observaciones?: string;
   tipoPago: string;
+  comprobanteBase64?: string;
+  referenciaPago?: string;
   detalles: { productoId: number; cantidad: number }[];
+}
+
+export interface RegistrarAbonoRequest {
+  usuarioId: number;
+  monto: number;
+  metodoPago?: string;
+  concepto?: string;
+  comprobanteBase64?: string;
+  referenciaPago?: string;
 }
 
 export const pedidoService = {
@@ -76,11 +91,11 @@ export const pedidoService = {
     return await api.get<Pedido>(`/pedidos/${id}`);
   },
 
-  create: async (data: any): Promise<ApiResponse<Pedido>> => {
+  create: async (data: PedidoCreateRequest): Promise<ApiResponse<Pedido>> => {
     return await api.post<Pedido>('/pedidos', data);
   },
 
-  createPedido: async (data: any): Promise<ApiResponse<Pedido>> => {
+  createPedido: async (data: PedidoCreateRequest): Promise<ApiResponse<Pedido>> => {
     return await pedidoService.create(data);
   },
 
@@ -96,7 +111,7 @@ export const pedidoService = {
     return await api.get<TransaccionDeuda[]>(`/pedidos/deudas${usuarioId ? `?usuarioId=${usuarioId}` : ''}`);
   },
 
-  registrarAbono: async (dto: { usuarioId: number; monto: number; metodoPago?: string; concepto?: string }): Promise<ApiResponse<TransaccionDeuda>> => {
+  registrarAbono: async (dto: RegistrarAbonoRequest): Promise<ApiResponse<TransaccionDeuda>> => {
     return await api.post<TransaccionDeuda>('/pedidos/abonar', dto);
   },
 };

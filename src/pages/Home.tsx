@@ -70,12 +70,12 @@ export const Home: React.FC = () => {
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 pt-2">
                 <Link to="/catalog">
                   <Button size="lg" variant="primary" rightIcon={<ArrowRight className="w-5 h-5" />}>
-                    Explorar Catálogo (Paginado de 12 en 12)
+                    Ver Catálogo
                   </Button>
                 </Link>
                 <Link to="/catalog?ofertas=true">
                   <Button size="lg" variant="secondary" leftIcon={<Percent className="w-4 h-4 text-red-500" />}>
-                    Ver Ofertas Especiales
+                    Ofertas
                   </Button>
                 </Link>
               </div>
@@ -249,7 +249,7 @@ export const Home: React.FC = () => {
           </div>
           <Link to="/login">
             <Button size="lg" variant="secondary" className="shadow-xl">
-              Ingresar al Sistema
+              Ingresar
             </Button>
           </Link>
         </div>

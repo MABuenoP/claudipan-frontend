@@ -24,11 +24,11 @@ export const Button: React.FC<ButtonProps> = ({
   const baseStyles = 'inline-flex items-center justify-center font-bold rounded-2xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500/50 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 cursor-pointer shadow-sm';
 
   const variants = {
-    primary: 'bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold shadow-md shadow-amber-500/25 hover:shadow-amber-500/40 border border-amber-400',
-    secondary: 'bg-blue-600 hover:bg-blue-500 text-white font-extrabold shadow-md shadow-blue-600/25 hover:shadow-blue-600/40 border border-blue-500',
+    primary: 'bg-amber-700 hover:bg-amber-600 text-white font-extrabold shadow-md shadow-amber-700/25 hover:shadow-amber-600/40 border border-amber-600',
+    secondary: 'bg-amber-800 hover:bg-amber-700 text-white font-extrabold shadow-md shadow-amber-800/25 hover:shadow-amber-700/40 border border-amber-700',
     success: 'bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold shadow-md shadow-emerald-600/25 hover:shadow-emerald-600/40 border border-emerald-500',
     danger: 'bg-red-600 hover:bg-red-500 text-white font-extrabold shadow-md shadow-red-600/25 hover:shadow-red-600/40 border border-red-500',
-    outline: 'border-2 border-amber-600 dark:border-amber-400 text-amber-800 dark:text-amber-300 hover:bg-amber-500/10 hover:border-amber-500 bg-white/80 dark:bg-stone-900/80 font-bold',
+    outline: 'border-2 border-amber-600 dark:border-amber-400 text-amber-900 dark:text-amber-200 hover:bg-amber-700 hover:text-white dark:hover:bg-amber-700 dark:hover:text-white bg-white/80 dark:bg-stone-900/80 font-bold transition-all',
     ghost: 'text-stone-700 dark:text-stone-300 hover:text-amber-700 dark:hover:text-amber-400 hover:bg-amber-500/10 font-bold',
   };
 

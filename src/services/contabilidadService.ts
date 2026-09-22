@@ -1,4 +1,5 @@
 import { api, ApiResponse } from './api';
+import { Pedido, TransaccionDeuda } from './pedidoService';
 
 export interface ResumenContable {
   totalVentas: number;
@@ -41,6 +42,21 @@ export interface ReporteProductoRotacion {
   estadoRotacion: 'Alta_Rotacion' | 'Baja_Rotacion' | 'Rezago' | 'Con_Perdidas' | 'Normal' | string;
 }
 
+export interface MisDeudasResumen {
+  usuarioId: number;
+  clienteNombre: string;
+  limiteCredito: number;
+  deudaActual: number;
+  cupoDisponible: number;
+  totalCompras: number;
+  totalComprasFiadas: number;
+  totalComprasContado: number;
+  totalAbonos: number;
+  cantidadPedidos: number;
+  pedidos: Pedido[];
+  transacciones: TransaccionDeuda[];
+}
+
 export const contabilidadService = {
   getResumen: async (): Promise<ApiResponse<ResumenContable>> => {
     return await api.get<ResumenContable>('/contabilidad/resumen');
@@ -66,7 +82,7 @@ export const contabilidadService = {
     return await api.get<any[]>(`/contabilidad/creditos${usuarioId ? `?usuarioId=${usuarioId}` : ''}`);
   },
 
-  getMisDeudas: async (): Promise<ApiResponse<any[]>> => {
-    return await api.get<any[]>('/contabilidad/mis-deudas');
+  getMisDeudas: async (): Promise<ApiResponse<MisDeudasResumen>> => {
+    return await api.get<MisDeudasResumen>('/contabilidad/mis-deudas');
   },
 };

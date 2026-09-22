@@ -1,15 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Package, Layers, Users, Plus, Edit2, Trash2, CheckCircle2, AlertCircle, RefreshCw, Camera, User } from 'lucide-react';
+import {
+  Package, Layers, Users, Plus, Edit2, Trash2, CheckCircle2, AlertCircle,
+  RefreshCw, Camera, User, Search, X, FileSpreadsheet, ChevronDown
+} from 'lucide-react';
 import { productService, Product, ProductCreateRequest } from '../services/productService';
 import { categoryService, Categoria, CategoriaCreateRequest } from '../services/categoryService';
 import { authService, UsuarioAdmin, UpdateUsuarioAdminRequest } from '../services/authService';
 import { Pagination } from '../components/ui/Pagination';
 import { useAuth } from '../hooks/useAuth';
+import { useFeedback } from '../hooks/useFeedback';
+import { exportToExcel } from '../utils/excelExport';
+import { Button } from '../components/ui/Button';
 
 export const AdminTables: React.FC = () => {
   const { user: currentUser } = useAuth();
+  const { showSuccess, showError, showWarning, showConfirm } = useFeedback();
   const canManageUsers = currentUser?.rol === 'Administrador' || currentUser?.rol === 'Gerente';
   const canEditCredit = currentUser?.rol === 'Administrador' || currentUser?.rol === 'Gerente';
+  const canExportExcel = currentUser?.rol === 'Administrador' || currentUser?.rol === 'Gerente' || currentUser?.rol === 'Contador' || currentUser?.rol === 'Contable';
 
   const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'users'>('products');
   const [loading, setLoading] = useState(true);
@@ -18,6 +26,19 @@ export const AdminTables: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Categoria[]>([]);
   const [users, setUsers] = useState<UsuarioAdmin[]>([]);
+
+  // Search & Mobile 10-in-10 states
+  const [searchProdInput, setSearchProdInput] = useState('');
+  const [searchProdTerm, setSearchProdTerm] = useState('');
+  const [visibleProdsMobile, setVisibleProdsMobile] = useState(10);
+
+  const [searchCatInput, setSearchCatInput] = useState('');
+  const [searchCatTerm, setSearchCatTerm] = useState('');
+  const [visibleCatsMobile, setVisibleCatsMobile] = useState(10);
+
+  const [searchUserInput, setSearchUserInput] = useState('');
+  const [searchUserTerm, setSearchUserTerm] = useState('');
+  const [visibleUsersMobile, setVisibleUsersMobile] = useState(10);
 
   // Pagination states (10 per page for tables)
   const [pageProducts, setPageProducts] = useState(1);
@@ -103,19 +124,29 @@ export const AdminTables: React.FC = () => {
 
     if (res.success) {
       setMessage({ type: 'success', text: res.message || 'Producto guardado con éxito' });
+      showSuccess(res.message || 'Producto guardado con éxito en el catálogo.', 'Producto Guardado');
       setIsProductModalOpen(false);
       fetchAllData();
     } else {
       setMessage({ type: 'error', text: res.message || 'Error al guardar el producto' });
+      showError(res.message || 'Error al guardar el producto', 'Error al Guardar');
     }
   };
 
   const handleDeleteProduct = async (id: number) => {
-    if (!window.confirm('¿Está seguro de eliminar este producto?')) return;
+    const confirmed = await showConfirm(
+      '¿Está seguro de que desea eliminar este producto del catálogo? Los pedidos anteriores mantendrán su historial.',
+      'Eliminar Producto'
+    );
+    if (!confirmed) return;
+
     const res = await productService.deleteProduct(id);
     if (res.success) {
       setMessage({ type: 'success', text: 'Producto eliminado con éxito' });
+      showSuccess('Producto eliminado con éxito del catálogo.', 'Producto Eliminado');
       fetchAllData();
+    } else {
+      showError(res.message || 'Error al eliminar el producto', 'Error al Eliminar');
     }
   };
 
@@ -132,19 +163,29 @@ export const AdminTables: React.FC = () => {
 
     if (res.success) {
       setMessage({ type: 'success', text: res.message || 'Categoría guardada con éxito' });
+      showSuccess(res.message || 'Categoría guardada con éxito.', 'Categoría Guardada');
       setIsCategoryModalOpen(false);
       fetchAllData();
     } else {
       setMessage({ type: 'error', text: res.message || 'Error al guardar la categoría' });
+      showError(res.message || 'Error al guardar la categoría', 'Error al Guardar');
     }
   };
 
   const handleDeleteCategory = async (id: number) => {
-    if (!window.confirm('¿Está seguro de eliminar esta categoría?')) return;
+    const confirmed = await showConfirm(
+      '¿Está seguro de que desea eliminar esta categoría? Los productos asociados podrían quedar sin categoría asignada.',
+      'Eliminar Categoría'
+    );
+    if (!confirmed) return;
+
     const res = await categoryService.deleteCategory(id);
     if (res.success) {
       setMessage({ type: 'success', text: 'Categoría eliminada con éxito' });
+      showSuccess('Categoría eliminada con éxito.', 'Categoría Eliminada');
       fetchAllData();
+    } else {
+      showError(res.message || 'Error al eliminar categoría', 'Error al Eliminar');
     }
   };
 
@@ -152,10 +193,17 @@ export const AdminTables: React.FC = () => {
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
+
+    const composedName = [userForm.primerNombre, userForm.segundoNombre, userForm.primerApellido, userForm.segundoApellido]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+
     const payload = {
       ...userForm,
-      nombre: [userForm.primerNombre, userForm.segundoNombre, userForm.primerApellido, userForm.segundoApellido].filter(Boolean).join(' ') || userForm.nombre,
+      nombre: composedName || userForm.nombre,
     };
+
     let res;
     if (editingUserId) {
       res = await authService.updateUserAdmin(editingUserId, payload);
@@ -165,40 +213,156 @@ export const AdminTables: React.FC = () => {
 
     if (res.success) {
       setMessage({ type: 'success', text: res.message || 'Usuario guardado con éxito' });
+      showSuccess(res.message || 'Usuario registrado/actualizado con éxito.', 'Usuario Guardado');
       setIsUserModalOpen(false);
       fetchAllData();
     } else {
       setMessage({ type: 'error', text: res.message || 'Error al guardar el usuario' });
+      showError(res.message || 'Error al guardar el usuario', 'Error al Guardar');
     }
   };
 
   const handleDeleteUser = async (id: number) => {
-    if (!window.confirm('¿Está seguro de desactivar este usuario?')) return;
+    const confirmed = await showConfirm(
+      '¿Está seguro de que desea desactivar o suspender este usuario del sistema?',
+      'Desactivar Usuario'
+    );
+    if (!confirmed) return;
+
     const res = await authService.deleteUserAdmin(id);
     if (res.success) {
-      setMessage({ type: 'success', text: 'Usuario desactivado' });
+      setMessage({ type: 'success', text: 'Usuario desactivado con éxito' });
+      showSuccess('Usuario desactivado con éxito.', 'Usuario Desactivado');
       fetchAllData();
+    } else {
+      showError(res.message || 'Error al desactivar usuario', 'Error al Desactivar');
     }
+  };
+
+  const handleUserPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      showWarning('La fotografía no puede superar 2MB de tamaño.', 'Archivo Demasiado Grande');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setUserForm(prev => ({ ...prev, fotoBase64: event.target?.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Filtering
+  const filteredProducts = products.filter(p => {
+    if (!searchProdTerm) return true;
+    const term = searchProdTerm.toLowerCase();
+    return (
+      p.nombre.toLowerCase().includes(term) ||
+      (p.descripcion && p.descripcion.toLowerCase().includes(term)) ||
+      (p.marca && p.marca.toLowerCase().includes(term)) ||
+      (p.sabor && p.sabor.toLowerCase().includes(term)) ||
+      (p.presentacion && p.presentacion.toLowerCase().includes(term))
+    );
+  });
+
+  const filteredCategories = categories.filter(c => {
+    if (!searchCatTerm) return true;
+    const term = searchCatTerm.toLowerCase();
+    return (
+      c.nombre.toLowerCase().includes(term) ||
+      (c.descripcion && c.descripcion.toLowerCase().includes(term)) ||
+      `#${c.id}`.includes(term)
+    );
+  });
+
+  const filteredUsers = users.filter(u => {
+    if (!searchUserTerm) return true;
+    const term = searchUserTerm.toLowerCase();
+    const displayName = [u.primerNombre, u.segundoNombre, u.primerApellido, u.segundoApellido].filter(Boolean).join(' ') || u.nombre;
+    return (
+      displayName.toLowerCase().includes(term) ||
+      u.email.toLowerCase().includes(term) ||
+      (u.cedula && u.cedula.toLowerCase().includes(term)) ||
+      (u.telefono && u.telefono.toLowerCase().includes(term)) ||
+      u.rol.toLowerCase().includes(term)
+    );
+  });
+
+  // Excel Exports
+  const handleExportProducts = () => {
+    exportToExcel<Product>({
+      filename: 'Catalogo_Productos_Claudipan',
+      sheetName: 'Productos',
+      title: 'Reporte Oficial de Catálogo de Productos - Claudipan',
+      data: filteredProducts,
+      columns: [
+        { header: 'ID', accessor: (p) => p.id, width: 10 },
+        { header: 'Nombre Producto', accessor: (p) => p.nombre, width: 28 },
+        { header: 'Marca', accessor: (p) => p.marca || '', width: 16 },
+        { header: 'Sabor / Variedad', accessor: (p) => p.sabor || '', width: 18 },
+        { header: 'Presentación', accessor: (p) => p.presentacion || '', width: 16 },
+        { header: 'Precio ($ COP)', accessor: (p) => p.precio, width: 18 },
+        { header: 'Stock Actual', accessor: (p) => p.stock, width: 14 },
+        { header: 'Estado', accessor: (p) => p.disponible ? 'Disponible' : 'Agotado', width: 14 },
+      ],
+    });
+  };
+
+  const handleExportCategories = () => {
+    exportToExcel<Categoria>({
+      filename: 'Categorias_Productos_Claudipan',
+      sheetName: 'Categorias',
+      title: 'Reporte Oficial de Categorías de Productos - Claudipan',
+      data: filteredCategories,
+      columns: [
+        { header: 'ID', accessor: (c) => c.id, width: 10 },
+        { header: 'Nombre Categoría', accessor: (c) => c.nombre, width: 30 },
+        { header: 'Descripción', accessor: (c) => c.descripcion || '', width: 45 },
+      ],
+    });
+  };
+
+  const handleExportUsers = () => {
+    exportToExcel<UsuarioAdmin>({
+      filename: 'Usuarios_Roles_Cartera_Claudipan',
+      sheetName: 'Usuarios',
+      title: 'Reporte Oficial de Usuarios, Roles y Topes de Crédito - Claudipan',
+      data: filteredUsers,
+      columns: [
+        { header: 'ID', accessor: (u) => u.id, width: 10 },
+        { header: 'Nombre Completo', accessor: (u) => [u.primerNombre, u.segundoNombre, u.primerApellido, u.segundoApellido].filter(Boolean).join(' ') || u.nombre, width: 30 },
+        { header: 'Cédula / NIT', accessor: (u) => u.cedula || '', width: 16 },
+        { header: 'Email', accessor: (u) => u.email, width: 28 },
+        { header: 'Teléfono', accessor: (u) => u.telefono || '', width: 16 },
+        { header: 'Rol', accessor: (u) => u.rol, width: 16 },
+        { header: 'Cupo Crédito ($)', accessor: (u) => u.limiteCredito, width: 18 },
+        { header: 'Deuda Actual ($)', accessor: (u) => u.deudaActual || 0, width: 18 },
+        { header: 'Estado', accessor: (u) => u.activo ? 'Activo' : 'Inactivo', width: 14 },
+      ],
+    });
   };
 
   return (
     <div className="min-h-screen bg-[#FFFBEB]/60 dark:bg-stone-950 text-stone-900 dark:text-stone-100 py-10 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
       <div className="max-w-7xl mx-auto space-y-8">
-        
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-heading font-extrabold tracking-tight bg-gradient-to-r from-amber-700 via-amber-600 to-amber-800 dark:from-amber-400 dark:to-amber-500 bg-clip-text text-transparent">
-              Gestión CRUD de Tablas del Sistema
+              Administración de Maestros
             </h1>
             <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">
-              Módulo exclusivo de Técnicos y Administradores para mantenimiento de entidades.
+              Control de Catálogo, Categorías, Usuarios y Políticas de Crédito Individuales.
             </p>
           </div>
 
           <button
             onClick={fetchAllData}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white dark:bg-stone-900 border border-amber-200/80 dark:border-stone-800 text-xs font-bold text-stone-700 dark:text-stone-300 hover:border-amber-500 transition-all shadow-sm"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white dark:bg-stone-900 border border-amber-200/80 dark:border-stone-800 text-xs font-bold text-stone-700 dark:text-stone-300 hover:border-amber-500 transition-all shadow-sm cursor-pointer self-start sm:self-auto"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-amber-600' : ''}`} />
             Actualizar Tablas
@@ -206,25 +370,23 @@ export const AdminTables: React.FC = () => {
         </div>
 
         {message && (
-          <div className={`p-4 rounded-2xl border text-sm font-medium flex items-center gap-3 ${
-            message.type === 'success' 
-              ? 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border-emerald-500/30' 
+          <div className={`p-4 rounded-2xl border text-sm font-medium flex items-center gap-3 ${message.type === 'success'
+              ? 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border-emerald-500/30'
               : 'bg-red-500/10 text-red-800 dark:text-red-300 border-red-500/30'
-          }`}>
+            }`}>
             {message.type === 'success' ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertCircle className="w-5 h-5 shrink-0" />}
             <span>{message.text}</span>
           </div>
         )}
 
         {/* Tab Switcher */}
-        <div className="flex border-b border-amber-200/80 dark:border-stone-800 gap-4">
+        <div className="flex border-b border-amber-200/80 dark:border-stone-800 gap-4 overflow-x-auto pb-1">
           <button
             onClick={() => setActiveTab('products')}
-            className={`flex items-center gap-2 pb-3 px-2 font-bold text-sm transition-all border-b-2 ${
-              activeTab === 'products'
+            className={`flex items-center gap-2 pb-3 px-2 font-bold text-sm transition-all border-b-2 whitespace-nowrap ${activeTab === 'products'
                 ? 'border-amber-600 text-amber-700 dark:text-amber-400 dark:border-amber-400'
                 : 'border-transparent text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
-            }`}
+              }`}
           >
             <Package className="w-4 h-4" />
             Productos ({products.length})
@@ -232,11 +394,10 @@ export const AdminTables: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('categories')}
-            className={`flex items-center gap-2 pb-3 px-2 font-bold text-sm transition-all border-b-2 ${
-              activeTab === 'categories'
+            className={`flex items-center gap-2 pb-3 px-2 font-bold text-sm transition-all border-b-2 whitespace-nowrap ${activeTab === 'categories'
                 ? 'border-amber-600 text-amber-700 dark:text-amber-400 dark:border-amber-400'
                 : 'border-transparent text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
-            }`}
+              }`}
           >
             <Layers className="w-4 h-4" />
             Categorías ({categories.length})
@@ -244,11 +405,10 @@ export const AdminTables: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('users')}
-            className={`flex items-center gap-2 pb-3 px-2 font-bold text-sm transition-all border-b-2 ${
-              activeTab === 'users'
+            className={`flex items-center gap-2 pb-3 px-2 font-bold text-sm transition-all border-b-2 whitespace-nowrap ${activeTab === 'users'
                 ? 'border-amber-600 text-amber-700 dark:text-amber-400 dark:border-amber-400'
                 : 'border-transparent text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
-            }`}
+              }`}
           >
             <Users className="w-4 h-4" />
             Usuarios & Roles ({users.length})
@@ -258,10 +418,67 @@ export const AdminTables: React.FC = () => {
         {/* Tab 1: Products */}
         {activeTab === 'products' && (
           <div className="space-y-4">
-            <div className="bg-white dark:bg-stone-900 rounded-3xl border border-amber-200/80 dark:border-stone-800 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-amber-200/80 dark:border-stone-800 flex items-center justify-between">
-                <h2 className="text-lg font-heading font-bold text-stone-900 dark:text-stone-100">Catálogo de Productos</h2>
-                <button
+            {/* Top Bar: Search on Left + Actions on Right */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-stone-900 p-4 rounded-3xl border border-amber-200/80 dark:border-stone-800 shadow-sm">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setSearchProdTerm(searchProdInput);
+                  setPageProducts(1);
+                }}
+                className="flex items-center gap-2 flex-1 max-w-md"
+              >
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar producto por nombre, marca, variedad..."
+                    value={searchProdInput}
+                    onChange={(e) => {
+                      setSearchProdInput(e.target.value);
+                      if (e.target.value === '') setSearchProdTerm('');
+                    }}
+                    className="w-full pl-9 pr-8 py-2 bg-stone-50 dark:bg-stone-950 border border-amber-200/80 dark:border-stone-800 rounded-2xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {searchProdInput && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchProdInput('');
+                        setSearchProdTerm('');
+                      }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  className="bg-amber-800 hover:bg-amber-700 text-white font-extrabold px-4 whitespace-nowrap"
+                >
+                  Buscar
+                </Button>
+              </form>
+
+              <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                {canExportExcel && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+                    onClick={handleExportProducts}
+                    className="text-emerald-700 dark:text-emerald-300 border-emerald-600 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 dark:hover:text-white cursor-pointer shadow-sm whitespace-nowrap"
+                  >
+                    Exportar a Excel
+                  </Button>
+                )}
+                <Button
+                  variant="primary"
+                  size="sm"
+                  leftIcon={<Plus className="w-4 h-4" />}
                   onClick={() => {
                     setEditingProductId(null);
                     setProductForm({
@@ -279,13 +496,15 @@ export const AdminTables: React.FC = () => {
                     });
                     setIsProductModalOpen(true);
                   }}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+                  className="bg-amber-800 hover:bg-amber-700 text-white font-extrabold shadow-sm whitespace-nowrap"
                 >
-                  <Plus className="w-4 h-4" />
-                  Nuevo Producto
-                </button>
+                  Producto
+                </Button>
               </div>
+            </div>
 
+            {/* Desktop Table */}
+            <div className="hidden md:block bg-white dark:bg-stone-900 rounded-3xl border border-amber-200/80 dark:border-stone-800 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm text-stone-700 dark:text-stone-300">
                   <thead className="bg-amber-500/10 dark:bg-stone-800/80 text-xs uppercase font-extrabold text-stone-600 dark:text-stone-400 border-b border-amber-200/80 dark:border-stone-800">
@@ -299,95 +518,230 @@ export const AdminTables: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-amber-100 dark:divide-stone-800">
-                    {products.slice((pageProducts - 1) * PAGE_SIZE_TABLE, pageProducts * PAGE_SIZE_TABLE).map((p) => (
-                      <tr key={p.id} className="hover:bg-amber-50/50 dark:hover:bg-stone-800/40 transition-colors">
-                        <td className="py-3 px-6">
-                          <img src={p.imagenUrl || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=100'} alt={p.nombre} className="w-10 h-10 rounded-xl object-cover border border-amber-300 dark:border-stone-700" />
-                        </td>
-                        <td className="py-3 px-6">
-                          <div className="font-bold text-stone-900 dark:text-stone-100">{p.nombre}</div>
-                          {(p.presentacion || p.marca || p.sabor || p.tamano) && (
-                            <div className="text-[11px] text-stone-500 dark:text-stone-400 flex flex-wrap gap-1 mt-0.5">
-                              {p.marca && <span className="bg-blue-500/10 text-blue-600 px-1.5 py-0.5 rounded">{p.marca}</span>}
-                              {p.sabor && <span className="bg-purple-500/10 text-purple-600 px-1.5 py-0.5 rounded">{p.sabor}</span>}
-                              {p.presentacion && <span className="bg-amber-500/10 text-amber-700 px-1.5 py-0.5 rounded">{p.presentacion}</span>}
-                              {p.tamano && <span className="bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded">{p.tamano}</span>}
-                            </div>
-                          )}
-                        </td>
-                        <td className="py-3 px-6 font-extrabold text-emerald-600 dark:text-emerald-400">${p.precio.toLocaleString('es-CO')}</td>
-                        <td className="py-3 px-6 font-semibold">{p.stock} unidades</td>
-                        <td className="py-3 px-6">
-                          <span className={`px-2.5 py-1 rounded-xl text-xs font-bold ${p.disponible ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20' : 'bg-stone-500/10 text-stone-600 dark:text-stone-400'}`}>
-                            {p.disponible ? 'Disponible' : 'Agotado'}
-                          </span>
-                        </td>
-                        <td className="py-3 px-6 text-right space-x-2">
-                          <button
-                            onClick={() => {
-                              setEditingProductId(p.id);
-                              setProductForm({
-                                nombre: p.nombre,
-                                descripcion: p.descripcion,
-                                precio: p.precio,
-                                stock: p.stock,
-                                imagenUrl: p.imagenUrl || '',
-                                disponible: p.disponible,
-                                categoriaId: p.categoriaId,
-                                presentacion: p.presentacion || '',
-                                marca: p.marca || '',
-                                sabor: p.sabor || '',
-                                tamano: p.tamano || '',
-                              });
-                              setIsProductModalOpen(true);
-                            }}
-                            className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteProduct(p.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                    {filteredProducts.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-stone-400 italic">
+                          No se encontraron productos.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      filteredProducts.slice((pageProducts - 1) * PAGE_SIZE_TABLE, pageProducts * PAGE_SIZE_TABLE).map((p) => (
+                        <tr key={p.id} className="hover:bg-amber-50/50 dark:hover:bg-stone-800/40 transition-colors">
+                          <td className="py-3 px-6">
+                            <img src={p.imagenUrl || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=100'} alt={p.nombre} className="w-10 h-10 rounded-xl object-cover border border-amber-300 dark:border-stone-700" />
+                          </td>
+                          <td className="py-3 px-6">
+                            <div className="font-bold text-stone-900 dark:text-stone-100">{p.nombre}</div>
+                            {(p.presentacion || p.marca || p.sabor || p.tamano) && (
+                              <div className="text-[11px] text-stone-500 dark:text-stone-400 flex flex-wrap gap-1 mt-0.5">
+                                {p.marca && <span className="bg-blue-500/10 text-blue-600 px-1.5 py-0.5 rounded">{p.marca}</span>}
+                                {p.sabor && <span className="bg-purple-500/10 text-purple-600 px-1.5 py-0.5 rounded">{p.sabor}</span>}
+                                {p.presentacion && <span className="bg-amber-500/10 text-amber-700 px-1.5 py-0.5 rounded">{p.presentacion}</span>}
+                                {p.tamano && <span className="bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded">{p.tamano}</span>}
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-3 px-6 font-extrabold text-emerald-600 dark:text-emerald-400">${p.precio.toLocaleString('es-CO')}</td>
+                          <td className="py-3 px-6 font-semibold">{p.stock} unidades</td>
+                          <td className="py-3 px-6">
+                            <span className={`px-2.5 py-1 rounded-xl text-xs font-bold ${p.disponible ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20' : 'bg-stone-500/10 text-stone-600 dark:text-stone-400'}`}>
+                              {p.disponible ? 'Disponible' : 'Agotado'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-6 text-right space-x-2">
+                            <button
+                              onClick={() => {
+                                setEditingProductId(p.id);
+                                setProductForm({
+                                  nombre: p.nombre,
+                                  descripcion: p.descripcion,
+                                  precio: p.precio,
+                                  stock: p.stock,
+                                  imagenUrl: p.imagenUrl || '',
+                                  disponible: p.disponible,
+                                  categoriaId: p.categoriaId,
+                                  presentacion: p.presentacion || '',
+                                  marca: p.marca || '',
+                                  sabor: p.sabor || '',
+                                  tamano: p.tamano || '',
+                                });
+                                setIsProductModalOpen(true);
+                              }}
+                              className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteProduct(p.id)}
+                              className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
 
-            <Pagination
-              currentPage={pageProducts}
-              totalItems={products.length}
-              pageSize={PAGE_SIZE_TABLE}
-              onPageChange={setPageProducts}
-              itemLabel="productos"
-            />
+            {/* Desktop Pagination */}
+            <div className="hidden md:block">
+              <Pagination
+                currentPage={pageProducts}
+                totalItems={filteredProducts.length}
+                pageSize={PAGE_SIZE_TABLE}
+                onPageChange={setPageProducts}
+                itemLabel="productos"
+              />
+            </div>
+
+            {/* Mobile CardView (10 en 10) */}
+            <div className="md:hidden space-y-3">
+              {filteredProducts.slice(0, visibleProdsMobile).map(p => (
+                <div key={p.id} className="bg-white dark:bg-stone-900 p-4 rounded-2xl border border-amber-200/80 dark:border-stone-800 shadow-sm space-y-3">
+                  <div className="flex items-center gap-3">
+                    <img src={p.imagenUrl || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=100'} alt={p.nombre} className="w-12 h-12 rounded-xl object-cover border border-amber-300" />
+                    <div className="flex-1">
+                      <h4 className="font-bold text-sm text-stone-900 dark:text-stone-100">{p.nombre}</h4>
+                      <p className="font-mono font-black text-emerald-600 text-sm">${p.precio.toLocaleString('es-CO')}</p>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${p.disponible ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-600'}`}>
+                      {p.disponible ? 'Disponible' : 'Agotado'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs pt-2 border-t border-amber-100 dark:border-stone-800">
+                    <span className="text-stone-500 font-semibold">Stock: <strong className="font-mono text-stone-800 dark:text-stone-200">{p.stock} u.</strong></span>
+                    <div className="space-x-1">
+                      <button
+                        onClick={() => {
+                          setEditingProductId(p.id);
+                          setProductForm({
+                            nombre: p.nombre,
+                            descripcion: p.descripcion,
+                            precio: p.precio,
+                            stock: p.stock,
+                            imagenUrl: p.imagenUrl || '',
+                            disponible: p.disponible,
+                            categoriaId: p.categoriaId,
+                            presentacion: p.presentacion || '',
+                            marca: p.marca || '',
+                            sabor: p.sabor || '',
+                            tamano: p.tamano || '',
+                          });
+                          setIsProductModalOpen(true);
+                        }}
+                        className="p-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteProduct(p.id)}
+                        className="p-1.5 bg-red-50 text-red-600 rounded-lg text-xs"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {visibleProdsMobile < filteredProducts.length && (
+                <div className="pt-2 text-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setVisibleProdsMobile(prev => prev + 10)}
+                    className="w-full text-amber-700 dark:text-amber-400 border-amber-500 font-bold"
+                  >
+                    <ChevronDown className="w-4 h-4 mr-1" /> Cargar 10 productos más ({visibleProdsMobile} de {filteredProducts.length})
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
         {/* Tab 2: Categories */}
         {activeTab === 'categories' && (
           <div className="space-y-4">
-            <div className="bg-white dark:bg-stone-900 rounded-3xl border border-amber-200/80 dark:border-stone-800 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-amber-200/80 dark:border-stone-800 flex items-center justify-between">
-                <h2 className="text-lg font-heading font-bold text-stone-900 dark:text-stone-100">Categorías</h2>
-                <button
+            {/* Top Bar: Search on Left + Action on Right */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-stone-900 p-4 rounded-3xl border border-amber-200/80 dark:border-stone-800 shadow-sm">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setSearchCatTerm(searchCatInput);
+                  setPageCategories(1);
+                }}
+                className="flex items-center gap-2 flex-1 max-w-md"
+              >
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar categoría..."
+                    value={searchCatInput}
+                    onChange={(e) => {
+                      setSearchCatInput(e.target.value);
+                      if (e.target.value === '') setSearchCatTerm('');
+                    }}
+                    className="w-full pl-9 pr-8 py-2 bg-stone-50 dark:bg-stone-950 border border-amber-200/80 dark:border-stone-800 rounded-2xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {searchCatInput && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchCatInput('');
+                        setSearchCatTerm('');
+                      }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  className="bg-amber-800 hover:bg-amber-700 text-white font-extrabold px-4 whitespace-nowrap"
+                >
+                  Buscar
+                </Button>
+              </form>
+
+              <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                {canExportExcel && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+                    onClick={handleExportCategories}
+                    className="text-emerald-700 dark:text-emerald-300 border-emerald-600 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 dark:hover:text-white cursor-pointer shadow-sm whitespace-nowrap"
+                  >
+                    Exportar a Excel
+                  </Button>
+                )}
+                <Button
+                  variant="primary"
+                  size="sm"
+                  leftIcon={<Plus className="w-4 h-4" />}
                   onClick={() => {
                     setEditingCategoryId(null);
                     setCategoryForm({ nombre: '', descripcion: '' });
                     setIsCategoryModalOpen(true);
                   }}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+                  className="bg-amber-800 hover:bg-amber-700 text-white font-extrabold shadow-sm whitespace-nowrap"
                 >
-                  <Plus className="w-4 h-4" />
-                  Nueva Categoría
-                </button>
+                  Categoría
+                </Button>
               </div>
+            </div>
 
+            {/* Desktop Table */}
+            <div className="hidden md:block bg-white dark:bg-stone-900 rounded-3xl border border-amber-200/80 dark:border-stone-800 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm text-stone-700 dark:text-stone-300">
                   <thead className="bg-amber-500/10 dark:bg-stone-800/80 text-xs uppercase font-extrabold text-stone-600 dark:text-stone-400 border-b border-amber-200/80 dark:border-stone-800">
@@ -399,59 +753,166 @@ export const AdminTables: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-amber-100 dark:divide-stone-800">
-                    {categories.slice((pageCategories - 1) * PAGE_SIZE_TABLE, pageCategories * PAGE_SIZE_TABLE).map((c) => (
-                      <tr key={c.id} className="hover:bg-amber-50/50 dark:hover:bg-stone-800/40 transition-colors">
-                        <td className="py-4 px-6 font-bold text-stone-500">#{c.id}</td>
-                        <td className="py-4 px-6 font-bold text-stone-900 dark:text-stone-100">{c.nombre}</td>
-                        <td className="py-4 px-6 text-stone-600 dark:text-stone-400">{c.descripcion || '-'}</td>
-                        <td className="py-4 px-6 text-right space-x-2">
-                          <button
-                            onClick={() => {
-                              setEditingCategoryId(c.id);
-                              setCategoryForm({ nombre: c.nombre, descripcion: c.descripcion || '' });
-                              setIsCategoryModalOpen(true);
-                            }}
-                            className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteCategory(c.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                    {filteredCategories.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="py-8 text-center text-stone-400 italic">
+                          No se encontraron categorías.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      filteredCategories.slice((pageCategories - 1) * PAGE_SIZE_TABLE, pageCategories * PAGE_SIZE_TABLE).map((c) => (
+                        <tr key={c.id} className="hover:bg-amber-50/50 dark:hover:bg-stone-800/40 transition-colors">
+                          <td className="py-4 px-6 font-bold text-stone-500">#{c.id}</td>
+                          <td className="py-4 px-6 font-bold text-stone-900 dark:text-stone-100">{c.nombre}</td>
+                          <td className="py-4 px-6 text-stone-600 dark:text-stone-400">{c.descripcion || '-'}</td>
+                          <td className="py-4 px-6 text-right space-x-2">
+                            <button
+                              onClick={() => {
+                                setEditingCategoryId(c.id);
+                                setCategoryForm({ nombre: c.nombre, descripcion: c.descripcion || '' });
+                                setIsCategoryModalOpen(true);
+                              }}
+                              className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCategory(c.id)}
+                              className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
 
-            <Pagination
-              currentPage={pageCategories}
-              totalItems={categories.length}
-              pageSize={PAGE_SIZE_TABLE}
-              onPageChange={setPageCategories}
-              itemLabel="categorías"
-            />
+            {/* Desktop Pagination */}
+            <div className="hidden md:block">
+              <Pagination
+                currentPage={pageCategories}
+                totalItems={filteredCategories.length}
+                pageSize={PAGE_SIZE_TABLE}
+                onPageChange={setPageCategories}
+                itemLabel="categorías"
+              />
+            </div>
+
+            {/* Mobile CardView (10 en 10) */}
+            <div className="md:hidden space-y-3">
+              {filteredCategories.slice(0, visibleCatsMobile).map(c => (
+                <div key={c.id} className="bg-white dark:bg-stone-900 p-4 rounded-2xl border border-amber-200/80 dark:border-stone-800 shadow-sm space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-sm text-stone-900 dark:text-stone-100">{c.nombre}</span>
+                    <span className="text-xs font-mono text-stone-400">#{c.id}</span>
+                  </div>
+                  <p className="text-xs text-stone-500">{c.descripcion || 'Sin descripción'}</p>
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-amber-100 dark:border-stone-800">
+                    <button
+                      onClick={() => {
+                        setEditingCategoryId(c.id);
+                        setCategoryForm({ nombre: c.nombre, descripcion: c.descripcion || '' });
+                        setIsCategoryModalOpen(true);
+                      }}
+                      className="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCategory(c.id)}
+                      className="px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-xs font-bold"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {visibleCatsMobile < filteredCategories.length && (
+                <div className="pt-2 text-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setVisibleCatsMobile(prev => prev + 10)}
+                    className="w-full text-amber-700 dark:text-amber-400 border-amber-500 font-bold"
+                  >
+                    <ChevronDown className="w-4 h-4 mr-1" /> Cargar 10 categorías más ({visibleCatsMobile} de {filteredCategories.length})
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
         {/* Tab 3: Users */}
         {activeTab === 'users' && (
           <div className="space-y-4">
-            <div className="bg-white dark:bg-stone-900 rounded-3xl border border-amber-200/80 dark:border-stone-800 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-amber-200/80 dark:border-stone-800 flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-heading font-bold text-stone-900 dark:text-stone-100">Usuarios & Gestión de Cuentas</h2>
-                  <p className="text-xs text-stone-500 dark:text-stone-400">
-                    Solo Gerente y Administrador tienen permisos para editar datos y modificar topes de crédito uno por uno.
-                  </p>
+            {/* Top Bar: Search on Left + Actions on Right */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-stone-900 p-4 rounded-3xl border border-amber-200/80 dark:border-stone-800 shadow-sm">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setSearchUserTerm(searchUserInput);
+                  setPageUsers(1);
+                }}
+                className="flex items-center gap-2 flex-1 max-w-md"
+              >
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar usuario por nombre, cédula, email o rol..."
+                    value={searchUserInput}
+                    onChange={(e) => {
+                      setSearchUserInput(e.target.value);
+                      if (e.target.value === '') setSearchUserTerm('');
+                    }}
+                    className="w-full pl-9 pr-8 py-2 bg-stone-50 dark:bg-stone-950 border border-amber-200/80 dark:border-stone-800 rounded-2xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  />
+                  {searchUserInput && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchUserInput('');
+                        setSearchUserTerm('');
+                      }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  className="bg-amber-800 hover:bg-amber-700 text-white font-extrabold px-4 whitespace-nowrap"
+                >
+                  Buscar
+                </Button>
+              </form>
+
+              <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                {canExportExcel && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+                    onClick={handleExportUsers}
+                    className="text-emerald-700 dark:text-emerald-300 border-emerald-600 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 dark:hover:text-white cursor-pointer shadow-sm whitespace-nowrap"
+                  >
+                    Exportar a Excel
+                  </Button>
+                )}
                 {canManageUsers && (
-                  <button
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    leftIcon={<Plus className="w-4 h-4" />}
                     onClick={() => {
                       setEditingUserId(null);
                       setUserForm({
@@ -472,14 +933,16 @@ export const AdminTables: React.FC = () => {
                       });
                       setIsUserModalOpen(true);
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+                    className="bg-amber-800 hover:bg-amber-700 text-white font-extrabold shadow-sm whitespace-nowrap"
                   >
-                    <Plus className="w-4 h-4" />
-                    Nuevo Usuario
-                  </button>
+                    Usuario
+                  </Button>
                 )}
               </div>
+            </div>
 
+            {/* Desktop Table */}
+            <div className="hidden md:block bg-white dark:bg-stone-900 rounded-3xl border border-amber-200/80 dark:border-stone-800 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm text-stone-700 dark:text-stone-300">
                   <thead className="bg-amber-500/10 dark:bg-stone-800/80 text-xs uppercase font-extrabold text-stone-600 dark:text-stone-400 border-b border-amber-200/80 dark:border-stone-800">
@@ -494,112 +957,204 @@ export const AdminTables: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-amber-100 dark:divide-stone-800">
-                    {users.slice((pageUsers - 1) * PAGE_SIZE_TABLE, pageUsers * PAGE_SIZE_TABLE).map((u) => {
-                      const displayName = [u.primerNombre, u.segundoNombre, u.primerApellido, u.segundoApellido].filter(Boolean).join(' ') || u.nombre;
-                      return (
-                        <tr key={u.id} className="hover:bg-amber-50/50 dark:hover:bg-stone-800/40 transition-colors">
-                          <td className="py-4 px-6 font-bold text-stone-900 dark:text-stone-100">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 overflow-hidden flex items-center justify-center font-bold text-amber-800 dark:text-amber-300 shrink-0">
-                                {u.fotoBase64 ? (
-                                  <img src={u.fotoBase64} alt={displayName} className="w-full h-full object-cover" />
-                                ) : (
-                                  <span>{displayName.charAt(0).toUpperCase()}</span>
-                                )}
+                    {filteredUsers.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-stone-400 italic">
+                          No se encontraron usuarios.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredUsers.slice((pageUsers - 1) * PAGE_SIZE_TABLE, pageUsers * PAGE_SIZE_TABLE).map((u) => {
+                        const displayName = [u.primerNombre, u.segundoNombre, u.primerApellido, u.segundoApellido].filter(Boolean).join(' ') || u.nombre;
+                        return (
+                          <tr key={u.id} className="hover:bg-amber-50/50 dark:hover:bg-stone-800/40 transition-colors">
+                            <td className="py-4 px-6 font-bold text-stone-900 dark:text-stone-100">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 overflow-hidden flex items-center justify-center font-bold text-amber-800 dark:text-amber-300 shrink-0">
+                                  {u.fotoBase64 ? (
+                                    <img src={u.fotoBase64} alt={displayName} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <span>{displayName.charAt(0).toUpperCase()}</span>
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="font-bold text-stone-900 dark:text-stone-100">{displayName}</p>
+                                  <p className="text-xs text-stone-500 dark:text-stone-400">{u.telefono || 'Sin teléfono'}</p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="font-bold text-stone-900 dark:text-stone-100">{displayName}</p>
-                                <p className="text-xs text-stone-500 dark:text-stone-400">{u.telefono || 'Sin teléfono'}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-4 px-6">
-                            <p className="text-stone-800 dark:text-stone-200">{u.email}</p>
-                            <p className="text-xs text-stone-500 dark:text-stone-400">CC: {u.cedula || 'Sin registrar'}</p>
-                          </td>
-                          <td className="py-4 px-6">
-                            <span className="px-3 py-1 rounded-xl text-xs font-extrabold bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30">
-                              {u.rol}
-                            </span>
-                          </td>
-                          <td className="py-4 px-6 font-semibold text-emerald-600 dark:text-emerald-400">
-                            ${(u.limiteCredito || 0).toLocaleString('es-CO')}
-                          </td>
-                          <td className="py-4 px-6 font-semibold text-red-600 dark:text-red-400">
-                            ${(u.deudaActual || 0).toLocaleString('es-CO')}
-                          </td>
-                          <td className="py-4 px-6">
-                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold ${u.activo ? 'bg-emerald-500/20 text-emerald-700' : 'bg-red-500/20 text-red-700'}`}>
-                              {u.activo ? 'Activo' : 'Inactivo'}
-                            </span>
-                          </td>
-                          <td className="py-4 px-6 text-right space-x-2">
-                            {canManageUsers && (
-                              <>
-                                <button
-                                  onClick={() => {
-                                    setEditingUserId(u.id);
-                                    let pNom = u.primerNombre || '';
-                                    let sNom = u.segundoNombre || '';
-                                    let pApe = u.primerApellido || '';
-                                    let sApe = u.segundoApellido || '';
+                            </td>
+                            <td className="py-4 px-6">
+                              <p className="text-stone-800 dark:text-stone-200">{u.email}</p>
+                              <p className="text-xs text-stone-500 dark:text-stone-400">CC: {u.cedula || 'Sin registrar'}</p>
+                            </td>
+                            <td className="py-4 px-6">
+                              <span className="px-3 py-1 rounded-xl text-xs font-extrabold bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30">
+                                {u.rol}
+                              </span>
+                            </td>
+                            <td className="py-4 px-6 font-semibold text-emerald-600 dark:text-emerald-400">
+                              ${(u.limiteCredito || 0).toLocaleString('es-CO')}
+                            </td>
+                            <td className="py-4 px-6 font-semibold text-red-600 dark:text-red-400">
+                              ${(u.deudaActual || 0).toLocaleString('es-CO')}
+                            </td>
+                            <td className="py-4 px-6">
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold ${u.activo ? 'bg-emerald-500/20 text-emerald-700' : 'bg-red-500/20 text-red-700'}`}>
+                                {u.activo ? 'Activo' : 'Inactivo'}
+                              </span>
+                            </td>
+                            <td className="py-4 px-6 text-right space-x-2">
+                              {canManageUsers && (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setEditingUserId(u.id);
+                                      let pNom = u.primerNombre || '';
+                                      let sNom = u.segundoNombre || '';
+                                      let pApe = u.primerApellido || '';
+                                      let sApe = u.segundoApellido || '';
 
-                                    if (!pNom && !pApe && u.nombre) {
-                                      const parts = u.nombre.trim().split(/\s+/);
-                                      if (parts.length === 1) pNom = parts[0];
-                                      else if (parts.length === 2) { pNom = parts[0]; pApe = parts[1]; }
-                                      else if (parts.length === 3) { pNom = parts[0]; pApe = parts[1]; sApe = parts[2]; }
-                                      else if (parts.length >= 4) { pNom = parts[0]; sNom = parts[1]; pApe = parts[2]; sApe = parts.slice(3).join(' '); }
-                                    }
+                                      if (!pNom && !pApe && u.nombre) {
+                                        const parts = u.nombre.trim().split(/\s+/);
+                                        if (parts.length === 1) pNom = parts[0];
+                                        else if (parts.length === 2) { pNom = parts[0]; pApe = parts[1]; }
+                                        else if (parts.length === 3) { pNom = parts[0]; pApe = parts[1]; sApe = parts[2]; }
+                                        else if (parts.length >= 4) { pNom = parts[0]; sNom = parts[1]; pApe = parts[2]; sApe = parts.slice(3).join(' '); }
+                                      }
 
-                                    setUserForm({
-                                      primerNombre: pNom,
-                                      segundoNombre: sNom,
-                                      primerApellido: pApe,
-                                      segundoApellido: sApe,
-                                      nombre: u.nombre,
-                                      cedula: u.cedula || '',
-                                      email: u.email,
-                                      rol: u.rol,
-                                      telefono: u.telefono || '',
-                                      direccion: u.direccion || '',
-                                      limiteCredito: u.limiteCredito,
-                                      activo: u.activo,
-                                      password: '',
-                                      fotoBase64: u.fotoBase64 || '',
-                                    });
-                                    setIsUserModalOpen(true);
-                                  }}
-                                  title="Editar usuario"
-                                  className="p-2 text-amber-600 hover:bg-amber-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                                >
-                                  <Edit2 className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteUser(u.id)}
-                                  title="Desactivar usuario"
-                                  className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                                      setUserForm({
+                                        primerNombre: pNom,
+                                        segundoNombre: sNom,
+                                        primerApellido: pApe,
+                                        segundoApellido: sApe,
+                                        nombre: u.nombre,
+                                        cedula: u.cedula || '',
+                                        email: u.email,
+                                        rol: u.rol,
+                                        telefono: u.telefono || '',
+                                        direccion: u.direccion || '',
+                                        limiteCredito: u.limiteCredito,
+                                        activo: u.activo,
+                                        password: '',
+                                        fotoBase64: u.fotoBase64 || '',
+                                      });
+                                      setIsUserModalOpen(true);
+                                    }}
+                                    title="Editar usuario"
+                                    className="p-2 text-amber-600 hover:bg-amber-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteUser(u.id)}
+                                    title="Desactivar usuario"
+                                    className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
 
-            <Pagination
-              currentPage={pageUsers}
-              totalItems={users.length}
-              pageSize={PAGE_SIZE_TABLE}
-              onPageChange={setPageUsers}
-              itemLabel="usuarios"
-            />
+            {/* Desktop Pagination */}
+            <div className="hidden md:block">
+              <Pagination
+                currentPage={pageUsers}
+                totalItems={filteredUsers.length}
+                pageSize={PAGE_SIZE_TABLE}
+                onPageChange={setPageUsers}
+                itemLabel="usuarios"
+              />
+            </div>
+
+            {/* Mobile CardView (10 en 10) */}
+            <div className="md:hidden space-y-3">
+              {filteredUsers.slice(0, visibleUsersMobile).map(u => {
+                const displayName = [u.primerNombre, u.segundoNombre, u.primerApellido, u.segundoApellido].filter(Boolean).join(' ') || u.nombre;
+                return (
+                  <div key={u.id} className="bg-white dark:bg-stone-900 p-4 rounded-2xl border border-amber-200/80 dark:border-stone-800 shadow-sm space-y-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 overflow-hidden flex items-center justify-center font-bold text-amber-800 shrink-0">
+                        {u.fotoBase64 ? (
+                          <img src={u.fotoBase64} alt={displayName} className="w-full h-full object-cover" />
+                        ) : (
+                          <span>{displayName.charAt(0).toUpperCase()}</span>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-sm text-stone-900 dark:text-stone-100">{displayName}</h4>
+                        <p className="text-xs text-stone-500">{u.email}</p>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-amber-500/20 text-amber-800">
+                        {u.rol}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-amber-100 dark:border-stone-800">
+                      <span className="text-stone-500">Cupo: <strong className="font-mono text-emerald-600">${(u.limiteCredito || 0).toLocaleString('es-CO')}</strong></span>
+                      <span className="text-stone-500">Deuda: <strong className="font-mono text-red-600">${(u.deudaActual || 0).toLocaleString('es-CO')}</strong></span>
+                    </div>
+
+                    {canManageUsers && (
+                      <div className="flex justify-end gap-2 pt-1 border-t border-amber-100 dark:border-stone-800">
+                        <button
+                          onClick={() => {
+                            setEditingUserId(u.id);
+                            setUserForm({
+                              primerNombre: u.primerNombre || '',
+                              segundoNombre: u.segundoNombre || '',
+                              primerApellido: u.primerApellido || '',
+                              segundoApellido: u.segundoApellido || '',
+                              nombre: u.nombre,
+                              cedula: u.cedula || '',
+                              email: u.email,
+                              rol: u.rol,
+                              telefono: u.telefono || '',
+                              direccion: u.direccion || '',
+                              limiteCredito: u.limiteCredito,
+                              activo: u.activo,
+                              password: '',
+                              fotoBase64: u.fotoBase64 || '',
+                            });
+                            setIsUserModalOpen(true);
+                          }}
+                          className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(u.id)}
+                          className="px-2.5 py-1 bg-red-100 text-red-800 rounded-lg text-xs font-bold"
+                        >
+                          Desactivar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {visibleUsersMobile < filteredUsers.length && (
+                <div className="pt-2 text-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setVisibleUsersMobile(prev => prev + 10)}
+                    className="w-full text-amber-700 dark:text-amber-400 border-amber-500 font-bold"
+                  >
+                    <ChevronDown className="w-4 h-4 mr-1" /> Cargar 10 usuarios más ({visibleUsersMobile} de {filteredUsers.length})
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -927,9 +1482,8 @@ export const AdminTables: React.FC = () => {
                     disabled={!canEditCredit}
                     value={userForm.limiteCredito}
                     onChange={(e) => setUserForm({ ...userForm, limiteCredito: parseFloat(e.target.value) || 0 })}
-                    className={`w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm ${
-                      !canEditCredit ? 'opacity-60 cursor-not-allowed bg-stone-100 dark:bg-stone-800' : ''
-                    }`}
+                    className={`w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm ${!canEditCredit ? 'opacity-60 cursor-not-allowed bg-stone-100 dark:bg-stone-800' : ''
+                      }`}
                   />
                 </div>
               </div>

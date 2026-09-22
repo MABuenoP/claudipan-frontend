@@ -5,10 +5,12 @@ import { User, Package, MapPin, Phone, Mail, RefreshCw, AlertCircle, CheckCircle
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Pagination } from '../components/ui/Pagination';
+import { useFeedback } from '../hooks/useFeedback';
 import { pedidoService, Pedido } from '../services/pedidoService';
 
 export const Dashboard: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
+  const { showSuccess, showError } = useFeedback();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -32,9 +34,10 @@ export const Dashboard: React.FC = () => {
   const handleUpdateEstado = async (id: number, nuevoEstado: string) => {
     const res = await pedidoService.updateEstado(id, nuevoEstado);
     if (res.success) {
+      showSuccess(`El pedido #${id} ahora se encuentra en estado: ${nuevoEstado}`, 'Estado Actualizado');
       fetchPedidos();
     } else {
-      alert(res.message || 'No se pudo actualizar el estado del pedido');
+      showError(res.message || 'No se pudo actualizar el estado del pedido', 'Error al Actualizar');
     }
   };
 
@@ -137,11 +140,17 @@ export const Dashboard: React.FC = () => {
                       </span>
 
                       <span className={`text-xs font-bold px-2.5 py-0.5 rounded-xl border ${
-                        ord.tipoPago === 'Credito_Deuda'
-                          ? 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20'
-                          : 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20'
+                        ord.tipoPago === 'Credito_Fiado' || ord.tipoPago === 'Credito_Deuda'
+                          ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                          : ord.tipoPago === 'Nequi'
+                          ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/30'
+                          : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
                       }`}>
-                        {ord.tipoPago === 'Credito_Deuda' ? 'Crédito' : ord.tipoPago}
+                        {ord.tipoPago === 'Credito_Fiado' || ord.tipoPago === 'Credito_Deuda' 
+                          ? 'Fiado (Crédito)' 
+                          : ord.tipoPago === 'Nequi' 
+                          ? 'Contado Nequi' 
+                          : 'Contado Efectivo'}
                       </span>
                     </div>
                   </div>
@@ -157,6 +166,12 @@ export const Dashboard: React.FC = () => {
                       ))}
                     </div>
                   </div>
+
+                  {ord.referenciaPago && (
+                    <p className="text-xs text-indigo-700 dark:text-indigo-400 font-mono flex items-center gap-1.5">
+                      <span>Referencia Nequi: <strong>{ord.referenciaPago}</strong></span>
+                    </p>
+                  )}
 
                   {ord.direccionEntrega && (
                     <p className="text-xs text-stone-600 dark:text-stone-400 flex items-center gap-1.5">
