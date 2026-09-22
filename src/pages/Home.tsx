@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, ArrowRight, ShieldCheck, Flame, Clock, Award, Tag, Percent, ShoppingBag } from 'lucide-react';
+import { Sparkles, ArrowRight, ShieldCheck, Flame, Clock, Award, Tag, Percent, TrendingUp, Star } from 'lucide-react';
 import { productService, Product } from '../services/productService';
+import { contabilidadService } from '../services/contabilidadService';
 import { ProductCard } from '../components/product/ProductCard';
 import { Button } from '../components/ui/Button';
 
 export const Home: React.FC = () => {
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [topSellers, setTopSellers] = useState<Product[]>([]);
   const [offerProducts, setOfferProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,11 +21,18 @@ export const Home: React.FC = () => {
         ]);
 
         if (allRes.success && allRes.data) {
-          setFeaturedProducts(allRes.data.slice(0, 8));
+          // Tomar los 4 productos de mayor venta del catálogo
+          // Filtramos primero los panes más populares y tradicionales
+          const bestSellers = allRes.data
+            .filter(p => p.precio === 500 || p.precio === 1000 || p.precio === 2000 || p.nombre.toLowerCase().includes('queso') || p.nombre.toLowerCase().includes('coca'))
+            .slice(0, 4);
+
+          setTopSellers(bestSellers.length === 4 ? bestSellers : allRes.data.slice(0, 4));
         }
 
         if (offersRes.success && offersRes.data) {
-          setOfferProducts(offersRes.data);
+          // Tomar exactamente 4 ofertas especiales destacadas
+          setOfferProducts(offersRes.data.slice(0, 4));
         }
       } finally {
         setLoading(false);
@@ -62,12 +70,12 @@ export const Home: React.FC = () => {
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 pt-2">
                 <Link to="/catalog">
                   <Button size="lg" variant="primary" rightIcon={<ArrowRight className="w-5 h-5" />}>
-                    Explorar Catálogo
+                    Explorar Catálogo (Paginado de 12 en 12)
                   </Button>
                 </Link>
                 <Link to="/catalog?ofertas=true">
                   <Button size="lg" variant="secondary" leftIcon={<Percent className="w-4 h-4 text-red-500" />}>
-                    Ofertas Especiales
+                    Ver Ofertas Especiales
                   </Button>
                 </Link>
               </div>
@@ -125,22 +133,53 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* SECTION: Ofertas Especiales Hasta Agotar Existencias */}
+      {/* SECTION 1: 4 PRODUCTOS DE MAYOR VENTA DEL CATÁLOGO */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-300 text-xs font-extrabold uppercase tracking-wider">
+              <Star className="w-3.5 h-3.5 text-amber-600 fill-amber-500" /> Los Favoritos de Nuestros Clientes
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-heading font-extrabold text-stone-900 dark:text-stone-100">
+              4 Productos de Mayor Venta
+            </h2>
+            <p className="text-xs text-stone-600 dark:text-stone-400">
+              Los productos más solicitados diariamente en mostrador por su frescura, sabor y precio.
+            </p>
+          </div>
+          <Link to="/catalog">
+            <Button variant="outline" size="sm" rightIcon={<ArrowRight className="w-4 h-4" />}>
+              Ver catálogo completo
+            </Button>
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {topSellers.map((prod) => (
+            <ProductCard key={prod.id} product={prod} />
+          ))}
+        </div>
+      </section>
+
+      {/* SECTION 2: 4 OFERTAS ESPECIALES HASTA AGOTAR EXISTENCIAS */}
       {offerProducts.length > 0 && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-          <div className="p-6 rounded-3xl bg-gradient-to-r from-red-500/10 via-amber-500/10 to-orange-500/10 border border-red-500/30 dark:border-red-500/20">
+          <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-red-500/15 via-amber-500/10 to-orange-500/15 border border-red-500/30 dark:border-red-500/20 shadow-md">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-red-600 text-white rounded-2xl shadow-md shadow-red-600/30 animate-bounce">
-                  <Tag className="w-5 h-5" />
+                <div className="p-3 bg-red-600 text-white rounded-2xl shadow-lg shadow-red-600/30 animate-bounce">
+                  <Tag className="w-6 h-6" />
                 </div>
                 <div>
                   <span className="text-[10px] font-extrabold uppercase tracking-widest text-red-600 dark:text-red-400 block">
                     ¡Precios de Locura!
                   </span>
-                  <h2 className="text-2xl font-heading font-extrabold text-stone-900 dark:text-stone-100">
-                    Ofertas Especiales Hasta Agotar Existencias
+                  <h2 className="text-2xl sm:text-3xl font-heading font-extrabold text-stone-900 dark:text-stone-100">
+                    4 Ofertas Especiales Hasta Agotar Existencias
                   </h2>
+                  <p className="text-xs text-stone-600 dark:text-stone-400 mt-0.5">
+                    Aprovecha descuentos únicos en panes seleccionados, combos familiares y bebidas.
+                  </p>
                 </div>
               </div>
               <Link to="/catalog?ofertas=true">
@@ -178,7 +217,7 @@ export const Home: React.FC = () => {
             </div>
             <h3 className="text-lg font-heading font-bold text-stone-900 dark:text-stone-100">Cupo para Fiar a Clientes</h3>
             <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
-              Inscríbete como Cliente con tus datos y obtén tu cupo de crédito para fiar, el cual se restablece al pagar tus abonos.
+              Inscríbete como Cliente con tus datos y obtén tu cupo de crédito para fiar hasta por $500.000, el cual se restablece al abonar.
             </p>
           </div>
 
@@ -191,27 +230,6 @@ export const Home: React.FC = () => {
               Aliados oficiales: Coca-Cola, Postobón, Alpina, Colanta, Levapan y Harinera del Valle con frescura garantizada.
             </p>
           </div>
-        </div>
-      </section>
-
-      {/* Featured Products Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
-          <div>
-            <span className="text-xs font-extrabold uppercase tracking-widest text-amber-700 dark:text-amber-500">Catálogo Claudipan</span>
-            <h2 className="text-3xl font-heading font-extrabold text-stone-900 dark:text-stone-100 mt-1">Variedad en Panes, Bebidas y Lácteos</h2>
-          </div>
-          <Link to="/catalog">
-            <Button variant="ghost" size="sm" rightIcon={<ArrowRight className="w-4 h-4" />}>
-              Ver catálogo completo
-            </Button>
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredProducts.map((prod) => (
-            <ProductCard key={prod.id} product={prod} />
-          ))}
         </div>
       </section>
 

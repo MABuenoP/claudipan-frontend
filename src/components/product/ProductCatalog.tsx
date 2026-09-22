@@ -1,11 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Product } from '../../services/productService';
 import { ProductCard } from './ProductCard';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { useCart } from '../../hooks/useCart';
 import { formatCurrency } from '../../utils/helpers';
-import { Search, SlidersHorizontal, ShoppingBag, Star, Check, Tag, X } from 'lucide-react';
+import { 
+  Search, SlidersHorizontal, ShoppingBag, Star, Check, 
+  Tag, X, ChevronLeft, ChevronRight, LayoutGrid 
+} from 'lucide-react';
 
 interface ProductCatalogProps {
   products: Product[];
@@ -13,6 +16,8 @@ interface ProductCatalogProps {
   initialSearch?: string;
   initialOffersOnly?: boolean;
 }
+
+const ITEMS_PER_PAGE = 12;
 
 export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   products,
@@ -29,10 +34,18 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   const [onlyOffers, setOnlyOffers] = useState<boolean>(initialOffersOnly);
   const [sortBy, setSortBy] = useState<'recommended' | 'price-low' | 'price-high'>('recommended');
   
+  // Pagination State (12 products per page)
+  const [currentPage, setCurrentPage] = useState<number>(1);
+
   const [selectedProduct, setSelectedProduct] = useState<Product | any | null>(null);
   const [selectedQty, setSelectedQty] = useState<number>(1);
 
   const { addItem } = useCart();
+
+  // Reset to page 1 whenever any filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, searchQuery, selectedPriceRange, selectedBrand, selectedFlavor, selectedSize, onlyOffers, sortBy]);
 
   // Extract unique brands, flavors, sizes dynamically from products
   const brands = useMemo(() => {
@@ -123,6 +136,12 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
       });
   }, [products, selectedCategory, searchQuery, selectedPriceRange, selectedBrand, selectedFlavor, selectedSize, onlyOffers, sortBy]);
 
+  // Pagination calculations (12 items per page)
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1;
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, filteredProducts.length);
+  const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+
   const clearFilters = () => {
     setSelectedCategory('all');
     setSearchQuery('');
@@ -144,6 +163,13 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
     if (selectedProduct) {
       addItem(selectedProduct, selectedQty);
       setSelectedProduct(null);
+    }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+      window.scrollTo({ top: 250, behavior: 'smooth' });
     }
   };
 
@@ -171,7 +197,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
             <button
               type="button"
               onClick={() => setOnlyOffers(!onlyOffers)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
                 onlyOffers
                   ? 'bg-red-600 text-white shadow-md shadow-red-600/30'
                   : 'bg-red-50 dark:bg-stone-950 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-900 hover:bg-red-100'
@@ -198,38 +224,37 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
         </div>
 
         {/* Categories Pills */}
-        <div className="space-y-1.5 pt-2 border-t border-stone-100 dark:border-stone-800">
-          <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">Categoría:</span>
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+          <button
+            type="button"
+            onClick={() => setSelectedCategory('all')}
+            className={`px-3.5 py-1.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+              selectedCategory === 'all'
+                ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
+                : 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-amber-100 dark:hover:bg-stone-700'
+            }`}
+          >
+            Todos los Productos ({products.length})
+          </button>
+          {categories.map((cat) => (
             <button
-              onClick={() => setSelectedCategory('all')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                selectedCategory === 'all'
-                  ? 'bg-amber-600 text-white shadow-sm'
-                  : 'bg-amber-100/60 dark:bg-stone-950 text-stone-700 dark:text-stone-300 hover:bg-amber-200'
+              key={cat.id}
+              type="button"
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`px-3.5 py-1.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                selectedCategory === cat.id
+                  ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
+                  : 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-amber-100 dark:hover:bg-stone-700'
               }`}
             >
-              🍞 Todos
+              {cat.name}
             </button>
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                  selectedCategory === cat.id
-                    ? 'bg-amber-600 text-white shadow-sm'
-                    : 'bg-amber-100/60 dark:bg-stone-950 text-stone-700 dark:text-stone-300 hover:bg-amber-200'
-                }`}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
 
-        {/* Dropdown Filters (Precio, Marca, Sabor, Tamaño) */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-stone-100 dark:border-stone-800 text-xs">
-          {/* Precio */}
+        {/* Multi-Filters Grid Row (Prices, Brands, Flavors, Sizes) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-amber-100 dark:border-stone-800 text-xs">
+          {/* Price Range */}
           <div>
             <label className="block text-[10px] font-bold text-stone-500 uppercase mb-1">Rango de Precio</label>
             <select
@@ -238,10 +263,10 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
               className="w-full bg-stone-50 dark:bg-stone-950 text-stone-800 dark:text-stone-200 p-2 rounded-xl border border-amber-200/80 dark:border-stone-800 font-medium"
             >
               <option value="all">Todos los precios</option>
-              <option value="500">Panes de $500</option>
-              <option value="1000">Panes de $1.000</option>
-              <option value="2000-5000">Panes de $2.000 a $5.000</option>
-              <option value="5000+">Especiales &gt; $5.000</option>
+              <option value="500">Panes $500</option>
+              <option value="1000">Panes $1.000</option>
+              <option value="2000-5000">Especiales $2.000 - $5.000</option>
+              <option value="5000+">Más de $5.000</option>
             </select>
           </div>
 
@@ -277,7 +302,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
 
           {/* Tamaño */}
           <div>
-            <label className="block text-[10px] font-bold text-stone-500 uppercase mb-1">Tamaño</label>
+            <label className="block text-[10px] font-bold text-stone-500 uppercase mb-1">Tamaño / Presentación</label>
             <select
               value={selectedSize}
               onChange={(e) => setSelectedSize(e.target.value)}
@@ -291,10 +316,17 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
           </div>
         </div>
 
-        {/* Clear filters badge */}
-        {hasActiveFilters && (
-          <div className="flex items-center justify-between pt-2 border-t border-stone-100 dark:border-stone-800 text-xs">
-            <span className="text-stone-500">Mostrando {filteredProducts.length} productos filtrados</span>
+        {/* Clear filters and count badge */}
+        <div className="flex flex-col sm:flex-row items-center justify-between pt-2 border-t border-stone-100 dark:border-stone-800 text-xs gap-2">
+          <span className="text-stone-600 dark:text-stone-400 font-semibold">
+            {filteredProducts.length > 0 ? (
+              <>Mostrando <strong className="text-amber-700 dark:text-amber-400">{startIndex + 1} - {endIndex}</strong> de <strong className="text-stone-900 dark:text-stone-100">{filteredProducts.length}</strong> productos (Página {currentPage} de {totalPages})</>
+            ) : (
+              'No hay productos que coincidan con la búsqueda'
+            )}
+          </span>
+
+          {hasActiveFilters && (
             <button
               onClick={clearFilters}
               className="text-amber-700 dark:text-amber-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
@@ -302,12 +334,12 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
               <X className="w-3.5 h-3.5" />
               Limpiar todos los filtros
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
       </div>
 
-      {/* Grid Results */}
+      {/* Grid Results (Paginated: 12 per page) */}
       {filteredProducts.length === 0 ? (
         <div className="text-center py-16 bg-white/60 dark:bg-stone-900/40 border border-amber-200/80 dark:border-stone-800/80 rounded-3xl space-y-4">
           <span className="text-5xl">🥐</span>
@@ -320,14 +352,72 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onQuickView={handleOpenModal}
-            />
-          ))}
+        <div className="space-y-8">
+          {/* 12-Product Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {paginatedProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onQuickView={handleOpenModal}
+              />
+            ))}
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-white dark:bg-stone-900/90 border border-amber-200/80 dark:border-stone-800 rounded-3xl shadow-sm">
+              <span className="text-xs text-stone-500 font-medium">
+                Página <strong className="text-stone-900 dark:text-stone-100">{currentPage}</strong> de <strong className="text-stone-900 dark:text-stone-100">{totalPages}</strong> ({ITEMS_PER_PAGE} productos por página)
+              </span>
+
+              <div className="flex items-center gap-1.5">
+                {/* Previous Button */}
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-1 transition-all ${
+                    currentPage === 1
+                      ? 'border-stone-200 dark:border-stone-800 text-stone-400 cursor-not-allowed'
+                      : 'border-amber-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 hover:border-amber-500 cursor-pointer shadow-sm'
+                  }`}
+                >
+                  <ChevronLeft className="w-4 h-4" /> Anterior
+                </button>
+
+                {/* Number Buttons */}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                  <button
+                    key={pageNum}
+                    type="button"
+                    onClick={() => handlePageChange(pageNum)}
+                    className={`w-9 h-9 rounded-xl font-extrabold text-xs transition-all cursor-pointer ${
+                      currentPage === pageNum
+                        ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30 scale-105'
+                        : 'bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-300 hover:border-amber-400'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
+
+                {/* Next Button */}
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-1 transition-all ${
+                    currentPage === totalPages
+                      ? 'border-stone-200 dark:border-stone-800 text-stone-400 cursor-not-allowed'
+                      : 'border-amber-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 hover:border-amber-500 cursor-pointer shadow-sm'
+                  }`}
+                >
+                  Siguiente <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
