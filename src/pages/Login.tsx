@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
-import { User, Lock, Phone, MapPin, ArrowRight, Sparkles, AlertCircle, FileText, Share2 } from 'lucide-react';
+import { User, Lock, Phone, MapPin, ArrowRight, Sparkles, AlertCircle, FileText, Share2, Eye, EyeOff } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('admin@claudipan.com');
   const [password, setPassword] = useState('Admin123*');
+  const [showPassword, setShowPassword] = useState(false);
   const [nombre, setNombre] = useState('');
   const [documentoIdentidad, setDocumentoIdentidad] = useState('');
   const [telefono, setTelefono] = useState('');
@@ -151,14 +152,27 @@ export const Login: React.FC = () => {
             <label className="text-[11px] font-bold text-stone-700 dark:text-stone-300 uppercase tracking-wider">Contraseña *</label>
             <div className="relative">
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 placeholder-stone-400 dark:placeholder-stone-500 text-xs px-4 py-2.5 pl-10 rounded-2xl border border-amber-200/80 dark:border-stone-800 focus:outline-none focus:border-amber-500"
+                className="w-full bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 placeholder-stone-400 dark:placeholder-stone-500 text-xs px-4 py-2.5 pl-10 pr-10 rounded-2xl border border-amber-200/80 dark:border-stone-800 focus:outline-none focus:border-amber-500"
               />
               <Lock className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-2 text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 focus:outline-none p-1 rounded-xl transition-colors"
+                title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+              >
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
+              </button>
             </div>
           </div>
 
