@@ -100,6 +100,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setUser(null);
     authService.logout();
+    // Limpiar cualquier residuo de caché del cliente
+    try {
+      localStorage.removeItem('claudipan_auth');
+      localStorage.removeItem('claudipan_token');
+      localStorage.removeItem('claudipan_refreshToken');
+      sessionStorage.clear();
+    } catch {
+      // Ignorar errores en navegadores restrictivos
+    }
+    // Redireccionar inmediatamente a la página de inicio pública
+    window.location.href = '/';
   };
 
   return (
