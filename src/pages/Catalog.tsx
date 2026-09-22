@@ -1,0 +1,64 @@
+import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { productService, Product } from '../services/productService';
+import { ProductCatalog } from '../components/product/ProductCatalog';
+import { Spinner } from '../components/ui/Spinner';
+import { Store, Flame } from 'lucide-react';
+
+export const Catalog: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const categoryParam = searchParams.get('category') || 'all';
+  const searchParam = searchParams.get('search') || '';
+  const ofertasParam = searchParams.get('ofertas') === 'true';
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      setIsLoading(true);
+      try {
+        const res = await productService.getAll();
+        if (res.success && res.data) {
+          setProducts(res.data);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadProducts();
+  }, []);
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+      
+      {/* Header Banner */}
+      <div className="bg-gradient-to-r from-amber-200/50 via-amber-100/40 to-amber-200/50 dark:from-stone-900 dark:via-amber-950/40 dark:to-stone-900 border border-amber-300/80 dark:border-amber-500/20 p-6 sm:p-10 rounded-3xl space-y-3 shadow-sm transition-colors duration-300">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-800 dark:text-amber-400 text-xs font-bold uppercase tracking-wider">
+          <Flame className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+          Vitrina Claudipan SENA ADSO
+        </div>
+        <h1 className="text-3xl sm:text-4xl font-heading font-extrabold text-stone-900 dark:text-stone-100">
+          Catálogo de Productos & Variedades
+        </h1>
+        <p className="text-stone-700 dark:text-stone-300 text-sm max-w-2xl">
+          Panes de $500, $1.000, $2.000, $5.000, especiales de perro y hamburguesas, gaseosas (Coca-Cola, Postobón, BigCola) y lácteos (Alpina, Colanta, NorLeche, LecheSan).
+        </p>
+      </div>
+
+      {isLoading ? (
+        <div className="py-24 text-center space-y-3">
+          <Spinner size="lg" />
+          <p className="text-sm font-semibold text-stone-600 dark:text-stone-400">Cargando catálogo recién horneado...</p>
+        </div>
+      ) : (
+        <ProductCatalog
+          products={products}
+          initialCategory={categoryParam}
+          initialSearch={searchParam}
+          initialOffersOnly={ofertasParam}
+        />
+      )}
+    </div>
+  );
+};

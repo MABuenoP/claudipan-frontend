@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#FAF6ED] text-stone-900 dark:bg-stone-950 dark:text-stone-100 font-sans antialiased selection:bg-amber-500 selection:text-stone-950 min-h-screen transition-colors duration-300;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(245, 158, 11, 0.08) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(217, 119, 6, 0.06) 0px, transparent 50%);
+    background-attachment: fixed;
+  }
+
+  .dark body {
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(120, 53, 15, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(217, 119, 6, 0.1) 0px, transparent 50%);
+  }
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(251, 243, 219, 0.8);
+}
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(28, 25, 23, 0.6);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(217, 119, 6, 0.4);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 158, 11, 0.8);
+}
+
+/* Glassmorphism Classes */
+.glass-panel {
+  @apply bg-white/80 dark:bg-stone-900/80 backdrop-blur-md border border-amber-900/10 dark:border-amber-500/10 shadow-lg shadow-amber-950/5;
+}
+
+.glass-card {
+  @apply bg-white/70 dark:bg-stone-900/70 backdrop-blur-sm border border-stone-200/80 dark:border-stone-800 shadow-sm transition-all duration-300;
+}
+
+/* Table Responsive Cards for Mobile View */
+@media (max-width: 768px) {
+  .responsive-table-container thead {
+    display: none;
+  }
+
+  .responsive-table-container tr {
+    display: block;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(229, 231, 235, 1);
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  }
+
+  .dark .responsive-table-container tr {
+    background: rgba(28, 25, 23, 0.85);
+    border-color: rgba(68, 64, 60, 0.8);
+  }
+
+  .responsive-table-container td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px dashed rgba(229, 231, 235, 0.7);
+    font-size: 0.875rem;
+  }
+
+  .dark .responsive-table-container td {
+    border-bottom-color: rgba(68, 64, 60, 0.6);
+  }
+
+  .responsive-table-container td:last-child {
+    border-bottom: none;
+    padding-top: 0.75rem;
+  }
+
+  .responsive-table-container td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    color: #78716c;
+    margin-right: 1rem;
+  }
+
+  .dark .responsive-table-container td::before {
+    color: #a8a29e;
+  }
+}

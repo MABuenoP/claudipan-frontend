@@ -1,0 +1,21 @@
+# Auto detect text files and normalize line endings automatically
+* text=auto
+
+# Text files normalized to LF
+*.js text
+*.jsx text
+*.ts text
+*.tsx text
+*.json text
+*.css text
+*.html text
+*.md text
+*.svg text
+*.gitignore text
+*.gitattributes text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
