@@ -3,6 +3,7 @@ import { Package, Layers, Users, Plus, Edit2, Trash2, CheckCircle2, AlertCircle,
 import { productService, Product, ProductCreateRequest } from '../services/productService';
 import { categoryService, Categoria, CategoriaCreateRequest } from '../services/categoryService';
 import { authService, UsuarioAdmin, UpdateUsuarioAdminRequest } from '../services/authService';
+import { Pagination } from '../components/ui/Pagination';
 
 export const AdminTables: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'users'>('products');
@@ -12,6 +13,12 @@ export const AdminTables: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Categoria[]>([]);
   const [users, setUsers] = useState<UsuarioAdmin[]>([]);
+
+  // Pagination states (10 per page for tables)
+  const [pageProducts, setPageProducts] = useState(1);
+  const [pageCategories, setPageCategories] = useState(1);
+  const [pageUsers, setPageUsers] = useState(1);
+  const PAGE_SIZE_TABLE = 10;
 
   // Modals & forms state
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -234,257 +241,287 @@ export const AdminTables: React.FC = () => {
 
         {/* Tab 1: Products */}
         {activeTab === 'products' && (
-          <div className="bg-white dark:bg-stone-900 rounded-3xl border border-amber-200/80 dark:border-stone-800 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-amber-200/80 dark:border-stone-800 flex items-center justify-between">
-              <h2 className="text-lg font-heading font-bold text-stone-900 dark:text-stone-100">Catálogo de Productos</h2>
-              <button
-                onClick={() => {
-                  setEditingProductId(null);
-                  setProductForm({
-                    nombre: '',
-                    descripcion: '',
-                    precio: 3500,
-                    stock: 50,
-                    imagenUrl: '',
-                    disponible: true,
-                    categoriaId: categories[0]?.id || 1,
-                    presentacion: '',
-                    marca: '',
-                    sabor: '',
-                    tamano: '',
-                  });
-                  setIsProductModalOpen(true);
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                Nuevo Producto
-              </button>
+          <div className="space-y-4">
+            <div className="bg-white dark:bg-stone-900 rounded-3xl border border-amber-200/80 dark:border-stone-800 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-amber-200/80 dark:border-stone-800 flex items-center justify-between">
+                <h2 className="text-lg font-heading font-bold text-stone-900 dark:text-stone-100">Catálogo de Productos</h2>
+                <button
+                  onClick={() => {
+                    setEditingProductId(null);
+                    setProductForm({
+                      nombre: '',
+                      descripcion: '',
+                      precio: 3500,
+                      stock: 50,
+                      imagenUrl: '',
+                      disponible: true,
+                      categoriaId: categories[0]?.id || 1,
+                      presentacion: '',
+                      marca: '',
+                      sabor: '',
+                      tamano: '',
+                    });
+                    setIsProductModalOpen(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nuevo Producto
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-stone-700 dark:text-stone-300">
+                  <thead className="bg-amber-500/10 dark:bg-stone-800/80 text-xs uppercase font-extrabold text-stone-600 dark:text-stone-400 border-b border-amber-200/80 dark:border-stone-800">
+                    <tr>
+                      <th className="py-3.5 px-6">Imagen</th>
+                      <th className="py-3.5 px-6">Nombre & Variedad</th>
+                      <th className="py-3.5 px-6">Precio</th>
+                      <th className="py-3.5 px-6">Stock</th>
+                      <th className="py-3.5 px-6">Estado</th>
+                      <th className="py-3.5 px-6 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-amber-100 dark:divide-stone-800">
+                    {products.slice((pageProducts - 1) * PAGE_SIZE_TABLE, pageProducts * PAGE_SIZE_TABLE).map((p) => (
+                      <tr key={p.id} className="hover:bg-amber-50/50 dark:hover:bg-stone-800/40 transition-colors">
+                        <td className="py-3 px-6">
+                          <img src={p.imagenUrl || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=100'} alt={p.nombre} className="w-10 h-10 rounded-xl object-cover border border-amber-300 dark:border-stone-700" />
+                        </td>
+                        <td className="py-3 px-6">
+                          <div className="font-bold text-stone-900 dark:text-stone-100">{p.nombre}</div>
+                          {(p.presentacion || p.marca || p.sabor || p.tamano) && (
+                            <div className="text-[11px] text-stone-500 dark:text-stone-400 flex flex-wrap gap-1 mt-0.5">
+                              {p.marca && <span className="bg-blue-500/10 text-blue-600 px-1.5 py-0.5 rounded">{p.marca}</span>}
+                              {p.sabor && <span className="bg-purple-500/10 text-purple-600 px-1.5 py-0.5 rounded">{p.sabor}</span>}
+                              {p.presentacion && <span className="bg-amber-500/10 text-amber-700 px-1.5 py-0.5 rounded">{p.presentacion}</span>}
+                              {p.tamano && <span className="bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded">{p.tamano}</span>}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-6 font-extrabold text-emerald-600 dark:text-emerald-400">${p.precio.toLocaleString('es-CO')}</td>
+                        <td className="py-3 px-6 font-semibold">{p.stock} unidades</td>
+                        <td className="py-3 px-6">
+                          <span className={`px-2.5 py-1 rounded-xl text-xs font-bold ${p.disponible ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20' : 'bg-stone-500/10 text-stone-600 dark:text-stone-400'}`}>
+                            {p.disponible ? 'Disponible' : 'Agotado'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-6 text-right space-x-2">
+                          <button
+                            onClick={() => {
+                              setEditingProductId(p.id);
+                              setProductForm({
+                                nombre: p.nombre,
+                                descripcion: p.descripcion,
+                                precio: p.precio,
+                                stock: p.stock,
+                                imagenUrl: p.imagenUrl || '',
+                                disponible: p.disponible,
+                                categoriaId: p.categoriaId,
+                                presentacion: p.presentacion || '',
+                                marca: p.marca || '',
+                                sabor: p.sabor || '',
+                                tamano: p.tamano || '',
+                              });
+                              setIsProductModalOpen(true);
+                            }}
+                            className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(p.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-stone-700 dark:text-stone-300">
-                <thead className="bg-amber-500/10 dark:bg-stone-800/80 text-xs uppercase font-extrabold text-stone-600 dark:text-stone-400 border-b border-amber-200/80 dark:border-stone-800">
-                  <tr>
-                    <th className="py-3.5 px-6">Imagen</th>
-                    <th className="py-3.5 px-6">Nombre & Variedad</th>
-                    <th className="py-3.5 px-6">Precio</th>
-                    <th className="py-3.5 px-6">Stock</th>
-                    <th className="py-3.5 px-6">Estado</th>
-                    <th className="py-3.5 px-6 text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-amber-100 dark:divide-stone-800">
-                  {products.map((p) => (
-                    <tr key={p.id} className="hover:bg-amber-50/50 dark:hover:bg-stone-800/40 transition-colors">
-                      <td className="py-3 px-6">
-                        <img src={p.imagenUrl || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=100'} alt={p.nombre} className="w-10 h-10 rounded-xl object-cover border border-amber-300 dark:border-stone-700" />
-                      </td>
-                      <td className="py-3 px-6">
-                        <div className="font-bold text-stone-900 dark:text-stone-100">{p.nombre}</div>
-                        {(p.presentacion || p.marca || p.sabor || p.tamano) && (
-                          <div className="text-[11px] text-stone-500 dark:text-stone-400 flex flex-wrap gap-1 mt-0.5">
-                            {p.marca && <span className="bg-blue-500/10 text-blue-600 px-1.5 py-0.5 rounded">{p.marca}</span>}
-                            {p.sabor && <span className="bg-purple-500/10 text-purple-600 px-1.5 py-0.5 rounded">{p.sabor}</span>}
-                            {p.presentacion && <span className="bg-amber-500/10 text-amber-700 px-1.5 py-0.5 rounded">{p.presentacion}</span>}
-                            {p.tamano && <span className="bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded">{p.tamano}</span>}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-3 px-6 font-extrabold text-emerald-600 dark:text-emerald-400">${p.precio.toLocaleString('es-CO')}</td>
-                      <td className="py-3 px-6 font-semibold">{p.stock} unidades</td>
-                      <td className="py-3 px-6">
-                        <span className={`px-2.5 py-1 rounded-xl text-xs font-bold ${p.disponible ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20' : 'bg-stone-500/10 text-stone-600 dark:text-stone-400'}`}>
-                          {p.disponible ? 'Disponible' : 'Agotado'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-6 text-right space-x-2">
-                        <button
-                          onClick={() => {
-                            setEditingProductId(p.id);
-                            setProductForm({
-                              nombre: p.nombre,
-                              descripcion: p.descripcion,
-                              precio: p.precio,
-                              stock: p.stock,
-                              imagenUrl: p.imagenUrl || '',
-                              disponible: p.disponible,
-                              categoriaId: p.categoriaId,
-                              presentacion: p.presentacion || '',
-                              marca: p.marca || '',
-                              sabor: p.sabor || '',
-                              tamano: p.tamano || '',
-                            });
-                            setIsProductModalOpen(true);
-                          }}
-                          className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteProduct(p.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Pagination
+              currentPage={pageProducts}
+              totalItems={products.length}
+              pageSize={PAGE_SIZE_TABLE}
+              onPageChange={setPageProducts}
+              itemLabel="productos"
+            />
           </div>
         )}
 
         {/* Tab 2: Categories */}
         {activeTab === 'categories' && (
-          <div className="bg-white dark:bg-stone-900 rounded-3xl border border-amber-200/80 dark:border-stone-800 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-amber-200/80 dark:border-stone-800 flex items-center justify-between">
-              <h2 className="text-lg font-heading font-bold text-stone-900 dark:text-stone-100">Categorías</h2>
-              <button
-                onClick={() => {
-                  setEditingCategoryId(null);
-                  setCategoryForm({ nombre: '', descripcion: '' });
-                  setIsCategoryModalOpen(true);
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                Nueva Categoría
-              </button>
+          <div className="space-y-4">
+            <div className="bg-white dark:bg-stone-900 rounded-3xl border border-amber-200/80 dark:border-stone-800 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-amber-200/80 dark:border-stone-800 flex items-center justify-between">
+                <h2 className="text-lg font-heading font-bold text-stone-900 dark:text-stone-100">Categorías</h2>
+                <button
+                  onClick={() => {
+                    setEditingCategoryId(null);
+                    setCategoryForm({ nombre: '', descripcion: '' });
+                    setIsCategoryModalOpen(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nueva Categoría
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-stone-700 dark:text-stone-300">
+                  <thead className="bg-amber-500/10 dark:bg-stone-800/80 text-xs uppercase font-extrabold text-stone-600 dark:text-stone-400 border-b border-amber-200/80 dark:border-stone-800">
+                    <tr>
+                      <th className="py-3.5 px-6">ID</th>
+                      <th className="py-3.5 px-6">Nombre</th>
+                      <th className="py-3.5 px-6">Descripción</th>
+                      <th className="py-3.5 px-6 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-amber-100 dark:divide-stone-800">
+                    {categories.slice((pageCategories - 1) * PAGE_SIZE_TABLE, pageCategories * PAGE_SIZE_TABLE).map((c) => (
+                      <tr key={c.id} className="hover:bg-amber-50/50 dark:hover:bg-stone-800/40 transition-colors">
+                        <td className="py-4 px-6 font-bold text-stone-500">#{c.id}</td>
+                        <td className="py-4 px-6 font-bold text-stone-900 dark:text-stone-100">{c.nombre}</td>
+                        <td className="py-4 px-6 text-stone-600 dark:text-stone-400">{c.descripcion || '-'}</td>
+                        <td className="py-4 px-6 text-right space-x-2">
+                          <button
+                            onClick={() => {
+                              setEditingCategoryId(c.id);
+                              setCategoryForm({ nombre: c.nombre, descripcion: c.descripcion || '' });
+                              setIsCategoryModalOpen(true);
+                            }}
+                            className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCategory(c.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-stone-700 dark:text-stone-300">
-                <thead className="bg-amber-500/10 dark:bg-stone-800/80 text-xs uppercase font-extrabold text-stone-600 dark:text-stone-400 border-b border-amber-200/80 dark:border-stone-800">
-                  <tr>
-                    <th className="py-3.5 px-6">ID</th>
-                    <th className="py-3.5 px-6">Nombre</th>
-                    <th className="py-3.5 px-6">Descripción</th>
-                    <th className="py-3.5 px-6 text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-amber-100 dark:divide-stone-800">
-                  {categories.map((c) => (
-                    <tr key={c.id} className="hover:bg-amber-50/50 dark:hover:bg-stone-800/40 transition-colors">
-                      <td className="py-4 px-6 font-bold text-stone-500">#{c.id}</td>
-                      <td className="py-4 px-6 font-bold text-stone-900 dark:text-stone-100">{c.nombre}</td>
-                      <td className="py-4 px-6 text-stone-600 dark:text-stone-400">{c.descripcion || '-'}</td>
-                      <td className="py-4 px-6 text-right space-x-2">
-                        <button
-                          onClick={() => {
-                            setEditingCategoryId(c.id);
-                            setCategoryForm({ nombre: c.nombre, descripcion: c.descripcion || '' });
-                            setIsCategoryModalOpen(true);
-                          }}
-                          className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteCategory(c.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Pagination
+              currentPage={pageCategories}
+              totalItems={categories.length}
+              pageSize={PAGE_SIZE_TABLE}
+              onPageChange={setPageCategories}
+              itemLabel="categorías"
+            />
           </div>
         )}
 
         {/* Tab 3: Users */}
         {activeTab === 'users' && (
-          <div className="bg-white dark:bg-stone-900 rounded-3xl border border-amber-200/80 dark:border-stone-800 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-amber-200/80 dark:border-stone-800 flex items-center justify-between">
-              <h2 className="text-lg font-heading font-bold text-stone-900 dark:text-stone-100">Usuarios & Asignación de Roles</h2>
-              <button
-                onClick={() => {
-                  setEditingUserId(null);
-                  setUserForm({
-                    nombre: '',
-                    email: '',
-                    rol: 'Cliente',
-                    telefono: '',
-                    direccion: '',
-                    limiteCredito: 500000,
-                    activo: true,
-                    password: 'Claudipan123*',
-                  });
-                  setIsUserModalOpen(true);
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                Nuevo Usuario
-              </button>
+          <div className="space-y-4">
+            <div className="bg-white dark:bg-stone-900 rounded-3xl border border-amber-200/80 dark:border-stone-800 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-amber-200/80 dark:border-stone-800 flex items-center justify-between">
+                <h2 className="text-lg font-heading font-bold text-stone-900 dark:text-stone-100">Usuarios & Asignación de Roles</h2>
+                <button
+                  onClick={() => {
+                    setEditingUserId(null);
+                    setUserForm({
+                      nombre: '',
+                      email: '',
+                      rol: 'Cliente',
+                      telefono: '',
+                      direccion: '',
+                      limiteCredito: 500000,
+                      activo: true,
+                      password: 'Claudipan123*',
+                    });
+                    setIsUserModalOpen(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nuevo Usuario
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-stone-700 dark:text-stone-300">
+                  <thead className="bg-amber-500/10 dark:bg-stone-800/80 text-xs uppercase font-extrabold text-stone-600 dark:text-stone-400 border-b border-amber-200/80 dark:border-stone-800">
+                    <tr>
+                      <th className="py-3.5 px-6">Nombre</th>
+                      <th className="py-3.5 px-6">Email</th>
+                      <th className="py-3.5 px-6">Rol</th>
+                      <th className="py-3.5 px-6">Cupo Crédito</th>
+                      <th className="py-3.5 px-6">Deuda Actual</th>
+                      <th className="py-3.5 px-6">Estado</th>
+                      <th className="py-3.5 px-6 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-amber-100 dark:divide-stone-800">
+                    {users.slice((pageUsers - 1) * PAGE_SIZE_TABLE, pageUsers * PAGE_SIZE_TABLE).map((u) => (
+                      <tr key={u.id} className="hover:bg-amber-50/50 dark:hover:bg-stone-800/40 transition-colors">
+                        <td className="py-4 px-6 font-bold text-stone-900 dark:text-stone-100">{u.nombre}</td>
+                        <td className="py-4 px-6 text-stone-600 dark:text-stone-400">{u.email}</td>
+                        <td className="py-4 px-6">
+                          <span className="px-3 py-1 rounded-xl text-xs font-extrabold bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30">
+                            {u.rol}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 font-semibold text-emerald-600 dark:text-emerald-400">${u.limiteCredito.toLocaleString('es-CO')}</td>
+                        <td className="py-4 px-6 font-semibold text-red-600 dark:text-red-400">${u.deudaActual.toLocaleString('es-CO')}</td>
+                        <td className="py-4 px-6">
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold ${u.activo ? 'bg-emerald-500/20 text-emerald-700' : 'bg-red-500/20 text-red-700'}`}>
+                            {u.activo ? 'Activo' : 'Inactivo'}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-right space-x-2">
+                          <button
+                            onClick={() => {
+                              setEditingUserId(u.id);
+                              setUserForm({
+                                nombre: u.nombre,
+                                email: u.email,
+                                rol: u.rol,
+                                telefono: u.telefono || '',
+                                direccion: u.direccion || '',
+                                limiteCredito: u.limiteCredito,
+                                activo: u.activo,
+                                password: '',
+                              });
+                              setIsUserModalOpen(true);
+                            }}
+                            className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(u.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-stone-700 dark:text-stone-300">
-                <thead className="bg-amber-500/10 dark:bg-stone-800/80 text-xs uppercase font-extrabold text-stone-600 dark:text-stone-400 border-b border-amber-200/80 dark:border-stone-800">
-                  <tr>
-                    <th className="py-3.5 px-6">Nombre</th>
-                    <th className="py-3.5 px-6">Email</th>
-                    <th className="py-3.5 px-6">Rol</th>
-                    <th className="py-3.5 px-6">Cupo Crédito</th>
-                    <th className="py-3.5 px-6">Deuda Actual</th>
-                    <th className="py-3.5 px-6">Estado</th>
-                    <th className="py-3.5 px-6 text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-amber-100 dark:divide-stone-800">
-                  {users.map((u) => (
-                    <tr key={u.id} className="hover:bg-amber-50/50 dark:hover:bg-stone-800/40 transition-colors">
-                      <td className="py-4 px-6 font-bold text-stone-900 dark:text-stone-100">{u.nombre}</td>
-                      <td className="py-4 px-6 text-stone-600 dark:text-stone-400">{u.email}</td>
-                      <td className="py-4 px-6">
-                        <span className="px-3 py-1 rounded-xl text-xs font-extrabold bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30">
-                          {u.rol}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6 font-semibold text-emerald-600 dark:text-emerald-400">${u.limiteCredito.toLocaleString('es-CO')}</td>
-                      <td className="py-4 px-6 font-semibold text-red-600 dark:text-red-400">${u.deudaActual.toLocaleString('es-CO')}</td>
-                      <td className="py-4 px-6">
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold ${u.activo ? 'bg-emerald-500/20 text-emerald-700' : 'bg-red-500/20 text-red-700'}`}>
-                          {u.activo ? 'Activo' : 'Inactivo'}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6 text-right space-x-2">
-                        <button
-                          onClick={() => {
-                            setEditingUserId(u.id);
-                            setUserForm({
-                              nombre: u.nombre,
-                              email: u.email,
-                              rol: u.rol,
-                              telefono: u.telefono || '',
-                              direccion: u.direccion || '',
-                              limiteCredito: u.limiteCredito,
-                              activo: u.activo,
-                              password: '',
-                            });
-                            setIsUserModalOpen(true);
-                          }}
-                          className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(u.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Pagination
+              currentPage={pageUsers}
+              totalItems={users.length}
+              pageSize={PAGE_SIZE_TABLE}
+              onPageChange={setPageUsers}
+              itemLabel="usuarios"
+            />
           </div>
         )}
       </div>

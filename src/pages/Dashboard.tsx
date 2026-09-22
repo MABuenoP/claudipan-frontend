@@ -4,12 +4,15 @@ import { formatCurrency } from '../utils/helpers';
 import { User, Package, MapPin, Phone, Mail, RefreshCw, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
+import { Pagination } from '../components/ui/Pagination';
 import { pedidoService, Pedido } from '../services/pedidoService';
 
 export const Dashboard: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const fetchPedidos = async () => {
     setLoading(true);
@@ -109,7 +112,7 @@ export const Dashboard: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {pedidos.map((ord) => (
+              {pedidos.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((ord) => (
                 <div
                   key={ord.id}
                   className="bg-white dark:bg-stone-900/90 border border-amber-200/80 dark:border-stone-800 p-5 rounded-3xl space-y-3 hover:border-amber-400 dark:hover:border-amber-500/30 transition-all shadow-sm"
@@ -191,6 +194,18 @@ export const Dashboard: React.FC = () => {
                   </div>
                 </div>
               ))}
+
+              {pedidos.length > 0 && (
+                <div className="pt-2">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalItems={pedidos.length}
+                    pageSize={PAGE_SIZE}
+                    onPageChange={setCurrentPage}
+                    itemLabel="pedidos"
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>

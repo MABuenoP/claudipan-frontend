@@ -9,6 +9,7 @@ import {
   CreditCard, ArrowRight, Tag, Flame
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { Pagination } from '../components/ui/Pagination';
 
 export const VentasPOS: React.FC = () => {
   const { user } = useAuth();
@@ -16,6 +17,10 @@ export const VentasPOS: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  
+  // Pagination State for POS Product Cards (12 items per page, 4 boxes per line)
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE_BOXES = 12;
 
   // Cart for POS
   const [cart, setCart] = useState<{ product: Product; quantity: number }[]>([]);
@@ -44,6 +49,10 @@ export const VentasPOS: React.FC = () => {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, searchQuery]);
 
   const addToCart = (product: Product) => {
     setCart(prev => {
@@ -219,9 +228,9 @@ export const VentasPOS: React.FC = () => {
             <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
           </div>
 
-          {/* Product Items Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[580px] overflow-y-auto pr-1">
-            {filteredProducts.map(p => (
+          {/* Product Items Grid (12 items per page, 4 boxes per line in desktop) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 min-h-[380px]">
+            {filteredProducts.slice((currentPage - 1) * PAGE_SIZE_BOXES, currentPage * PAGE_SIZE_BOXES).map(p => (
               <button
                 key={p.id}
                 onClick={() => addToCart(p)}
@@ -262,6 +271,15 @@ export const VentasPOS: React.FC = () => {
               </button>
             ))}
           </div>
+
+          {/* Pagination for POS Products */}
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredProducts.length}
+            pageSize={PAGE_SIZE_BOXES}
+            onPageChange={setCurrentPage}
+            itemLabel="productos"
+          />
 
         </div>
 

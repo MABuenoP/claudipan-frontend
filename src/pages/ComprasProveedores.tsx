@@ -8,6 +8,7 @@ import {
   Trash2, Eye, CheckCircle2, RefreshCw, X, DollarSign, Calendar
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { Pagination } from '../components/ui/Pagination';
 
 export const ComprasProveedores: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'compras' | 'proveedores'>('compras');
@@ -15,6 +16,12 @@ export const ComprasProveedores: React.FC = () => {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Pagination states: 10 per page for tables, 12 for boxes
+  const [pageCompras, setPageCompras] = useState(1);
+  const [pageProveedores, setPageProveedores] = useState(1);
+  const PAGE_SIZE_TABLE = 10;
+  const PAGE_SIZE_BOXES = 12;
 
   // Modal Nueva Compra
   const [showNuevaCompraModal, setShowNuevaCompraModal] = useState(false);
@@ -273,7 +280,7 @@ export const ComprasProveedores: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-teal-100/60 dark:divide-stone-800 text-xs">
-                {compras.map(c => (
+                {compras.slice((pageCompras - 1) * PAGE_SIZE_TABLE, pageCompras * PAGE_SIZE_TABLE).map(c => (
                   <tr key={c.id} className="hover:bg-teal-50/40 dark:hover:bg-stone-800/40 transition-colors">
                     <td data-label="Factura / Fecha" className="py-3 px-4">
                       <p className="font-mono font-bold text-teal-700 dark:text-teal-400">{c.numeroFactura}</p>
@@ -306,10 +313,18 @@ export const ComprasProveedores: React.FC = () => {
               </tbody>
             </table>
           </div>
+
+          <Pagination
+            currentPage={pageCompras}
+            totalItems={compras.length}
+            pageSize={PAGE_SIZE_TABLE}
+            onPageChange={setPageCompras}
+            itemLabel="facturas de compras"
+          />
         </div>
       )}
 
-      {/* Tab 2: Proveedores Grid */}
+      {/* Tab 2: Proveedores Grid (12 en 12, 4 por línea) */}
       {activeTab === 'proveedores' && (
         <div className="space-y-4">
           <div className="flex justify-end">
@@ -323,8 +338,8 @@ export const ComprasProveedores: React.FC = () => {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {proveedores.map(p => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+            {proveedores.slice((pageProveedores - 1) * PAGE_SIZE_BOXES, pageProveedores * PAGE_SIZE_BOXES).map(p => (
               <div 
                 key={p.id}
                 className="bg-white dark:bg-stone-900 border border-teal-200/80 dark:border-stone-800 rounded-3xl p-5 shadow-sm space-y-3 hover:border-teal-500 transition-all flex flex-col justify-between"
@@ -367,6 +382,14 @@ export const ComprasProveedores: React.FC = () => {
               </div>
             ))}
           </div>
+
+          <Pagination
+            currentPage={pageProveedores}
+            totalItems={proveedores.length}
+            pageSize={PAGE_SIZE_BOXES}
+            onPageChange={setPageProveedores}
+            itemLabel="proveedores"
+          />
         </div>
       )}
 

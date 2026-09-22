@@ -6,11 +6,14 @@ import {
   Trash2, RefreshCw, X, DollarSign, Calendar, FileText, CheckCircle2 
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { Pagination } from '../components/ui/Pagination';
 
 export const GastosNomina: React.FC = () => {
   const [gastos, setGastos] = useState<Gasto[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<string>('todos');
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   // Modal Nuevo Gasto
   const [showModal, setShowModal] = useState(false);
@@ -70,6 +73,8 @@ export const GastosNomina: React.FC = () => {
     if (selectedFilter === 'mantenimiento') return g.tipoGasto === 'Mantenimiento';
     return g.tipoGasto === selectedFilter;
   });
+
+  const paginatedGastos = filteredGastos.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const totalGastos = gastos.reduce((acc, g) => acc + g.monto, 0);
   const totalServicios = gastos.filter(g => g.tipoGasto === 'ServicioPublico').reduce((acc, g) => acc + g.monto, 0);
@@ -185,7 +190,7 @@ export const GastosNomina: React.FC = () => {
         ].map(tab => (
           <button
             key={tab.id}
-            onClick={() => setSelectedFilter(tab.id)}
+            onClick={() => { setSelectedFilter(tab.id); setCurrentPage(1); }}
             className={`pb-3 px-4 text-xs font-bold border-b-2 whitespace-nowrap transition-all ${
               selectedFilter === tab.id
                 ? 'border-rose-600 text-rose-700 dark:text-rose-400'
@@ -210,7 +215,7 @@ export const GastosNomina: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-rose-100/60 dark:divide-stone-800 text-xs">
-            {filteredGastos.map(g => (
+            {paginatedGastos.map(g => (
               <tr key={g.id} className="hover:bg-rose-50/40 dark:hover:bg-stone-800/40 transition-colors">
                 <td data-label="Comprobante / Fecha" className="py-3 px-4">
                   <p className="font-mono font-bold text-rose-700 dark:text-rose-400">{g.numeroComprobante || `REC-${g.id}`}</p>
@@ -240,6 +245,18 @@ export const GastosNomina: React.FC = () => {
             ))}
           </tbody>
         </table>
+
+        {filteredGastos.length > 0 && (
+          <div className="p-4 border-t border-rose-200/80 dark:border-stone-800">
+            <Pagination
+              currentPage={currentPage}
+              totalItems={filteredGastos.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setCurrentPage}
+              itemLabel="gastos"
+            />
+          </div>
+        )}
       </div>
 
       {/* Modal: Registrar Nuevo Gasto */}

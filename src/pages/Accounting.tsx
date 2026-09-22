@@ -3,6 +3,7 @@ import { DollarSign, TrendingUp, Users, PlusCircle, RefreshCw, AlertCircle, Arro
 import { contabilidadService, ResumenContable } from '../services/contabilidadService';
 import { pedidoService, TransaccionDeuda } from '../services/pedidoService';
 import { authService, UsuarioAdmin } from '../services/authService';
+import { Pagination } from '../components/ui/Pagination';
 
 export const Accounting: React.FC = () => {
   const [resumen, setResumen] = useState<ResumenContable | null>(null);
@@ -11,6 +12,8 @@ export const Accounting: React.FC = () => {
   
   const [loading, setLoading] = useState(true);
   const [isAbonoModalOpen, setIsAbonoModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   // Form states for registrar abono
   const [selectedUsuarioId, setSelectedUsuarioId] = useState<number | ''>('');
@@ -184,7 +187,7 @@ export const Accounting: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-amber-100 dark:divide-stone-800">
-                  {transacciones.map((t) => (
+                  {transacciones.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((t) => (
                     <tr key={t.id} className="hover:bg-amber-50/50 dark:hover:bg-stone-800/40 transition-colors">
                       <td className="py-4 px-6 font-bold">
                         {t.tipo === 'Cargo_Deuda' ? (
@@ -218,6 +221,16 @@ export const Accounting: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+
+              <div className="p-4 border-t border-amber-200/80 dark:border-stone-800">
+                <Pagination
+                  currentPage={currentPage}
+                  totalItems={transacciones.length}
+                  pageSize={PAGE_SIZE}
+                  onPageChange={setCurrentPage}
+                  itemLabel="movimientos contables"
+                />
+              </div>
             </div>
           )}
         </div>

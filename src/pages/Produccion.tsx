@@ -10,6 +10,7 @@ import {
   TrendingUp, Sparkles, Scale, Layers
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { Pagination } from '../components/ui/Pagination';
 
 export const Produccion: React.FC = () => {
   const { user } = useAuth();
@@ -20,6 +21,14 @@ export const Produccion: React.FC = () => {
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [productos, setProductos] = useState<Product[]>([]);
   
+  // Pagination states: 10 per page for tables, 12 for boxes
+  const [pageOrdenes, setPageOrdenes] = useState(1);
+  const [pageRecetas, setPageRecetas] = useState(1);
+  const [pageInsumos, setPageInsumos] = useState(1);
+
+  const PAGE_SIZE_TABLE = 10;
+  const PAGE_SIZE_BOXES = 12;
+
   const [loading, setLoading] = useState(true);
   const [selectedRecetaModal, setSelectedRecetaModal] = useState<RecetaProduccion | null>(null);
 
@@ -111,15 +120,20 @@ export const Produccion: React.FC = () => {
         return <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30">PENDIENTE</span>;
       case 'En_Proceso':
       case 'En Proceso':
-        return <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-blue-500/20 text-blue-800 dark:text-blue-300 border border-blue-500/30 animate-pulse">EN HORNO / PREPARACIÓN</span>;
+        return <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-blue-500/20 text-blue-800 dark:text-blue-300 border border-blue-500/30 animate-pulse">HORNEANDO</span>;
       case 'Entregada':
-        return <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30">ENTREGADA A STOCK</span>;
+        return <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30">ENTREGADA</span>;
       case 'Cancelada':
         return <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-red-500/20 text-red-800 dark:text-red-300 border border-red-500/30">CANCELADA</span>;
       default:
-        return <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-stone-500/20 text-stone-700 dark:text-stone-300">{estado}</span>;
+        return <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-stone-500/20 text-stone-700 dark:text-stone-300 border border-stone-500/30">{estado}</span>;
     }
   };
+
+  // Paginated Data
+  const paginatedOrdenes = ordenes.slice((pageOrdenes - 1) * PAGE_SIZE_TABLE, pageOrdenes * PAGE_SIZE_TABLE);
+  const paginatedRecetas = recetas.slice((pageRecetas - 1) * PAGE_SIZE_BOXES, pageRecetas * PAGE_SIZE_BOXES);
+  const paginatedInsumos = insumos.slice((pageInsumos - 1) * PAGE_SIZE_TABLE, pageInsumos * PAGE_SIZE_TABLE);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
@@ -259,7 +273,7 @@ export const Produccion: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-amber-100/60 dark:divide-stone-800 text-xs">
-                {ordenes.map(ord => (
+                {paginatedOrdenes.map(ord => (
                   <tr key={ord.id} className="hover:bg-amber-50/40 dark:hover:bg-stone-800/40 transition-colors">
                     <td data-label="Código / Fecha" className="py-3 px-4">
                       <p className="font-mono font-bold text-amber-700 dark:text-amber-400">{ord.codigoOrden}</p>
@@ -306,72 +320,90 @@ export const Produccion: React.FC = () => {
               </tbody>
             </table>
           </div>
+
+          <Pagination
+            currentPage={pageOrdenes}
+            totalItems={ordenes.length}
+            pageSize={PAGE_SIZE_TABLE}
+            onPageChange={setPageOrdenes}
+            itemLabel="órdenes de producción"
+          />
         </div>
       )}
 
-      {/* Tab 2: Fórmulas y Recetas */}
+      {/* Tab 2: Fórmulas y Recetas (Boxes 12 en 12, 4 por línea) */}
       {activeTab === 'recetas' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {recetas.map(rec => (
-            <div 
-              key={rec.id} 
-              className="bg-white dark:bg-stone-900 border border-amber-200/80 dark:border-stone-800 rounded-3xl p-5 shadow-sm space-y-4 hover:border-amber-500 transition-all flex flex-col justify-between"
-            >
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="px-2.5 py-0.5 rounded-md bg-amber-100 dark:bg-stone-800 text-amber-800 dark:text-amber-400 font-extrabold text-[10px] uppercase">
-                    Fórmula Maestra
-                  </span>
-                  <span className="text-xs font-mono font-bold text-stone-500">
-                    Rinde: {rec.rendimientoUnidades} u.
-                  </span>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+            {paginatedRecetas.map(rec => (
+              <div 
+                key={rec.id} 
+                className="bg-white dark:bg-stone-900 border border-amber-200/80 dark:border-stone-800 rounded-3xl p-5 shadow-sm space-y-4 hover:border-amber-500 transition-all flex flex-col justify-between"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2.5 py-0.5 rounded-md bg-amber-100 dark:bg-stone-800 text-amber-800 dark:text-amber-400 font-extrabold text-[10px] uppercase">
+                      Fórmula Maestra
+                    </span>
+                    <span className="text-xs font-mono font-bold text-stone-500">
+                      Rinde: {rec.rendimientoUnidades} u.
+                    </span>
+                  </div>
+                  
+                  <h3 className="font-heading font-extrabold text-base text-stone-900 dark:text-stone-100">
+                    {rec.nombreReceta}
+                  </h3>
+                  <p className="text-xs text-stone-500">{rec.descripcion || `Fórmula para ${rec.productoNombre}`}</p>
+                  
+                  {/* Ingredients summary */}
+                  <div className="p-3 bg-amber-50/60 dark:bg-stone-950 rounded-2xl border border-amber-200/60 dark:border-stone-800 space-y-1.5 text-xs">
+                    <p className="font-bold text-[11px] text-stone-700 dark:text-stone-300">Insumos Requeridos:</p>
+                    {rec.detalles && rec.detalles.length > 0 ? (
+                      <ul className="space-y-1 text-[11px] text-stone-600 dark:text-stone-400">
+                        {rec.detalles.map((d, i) => (
+                          <li key={i} className="flex justify-between">
+                            <span>• {d.insumoNombre || `Insumo #${d.insumoId}`}</span>
+                            <span className="font-mono font-bold">{d.cantidadNecesaria} {d.unidadMedida}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-[10px] text-stone-400 italic">Detalles cargados en servidor</p>
+                    )}
+                  </div>
                 </div>
-                
-                <h3 className="font-heading font-extrabold text-base text-stone-900 dark:text-stone-100">
-                  {rec.nombreReceta}
-                </h3>
-                <p className="text-xs text-stone-500">{rec.descripcion || `Fórmula para ${rec.productoNombre}`}</p>
-                
-                {/* Ingredients summary */}
-                <div className="p-3 bg-amber-50/60 dark:bg-stone-950 rounded-2xl border border-amber-200/60 dark:border-stone-800 space-y-1.5 text-xs">
-                  <p className="font-bold text-[11px] text-stone-700 dark:text-stone-300">Insumos Requeridos:</p>
-                  {rec.detalles && rec.detalles.length > 0 ? (
-                    <ul className="space-y-1 text-[11px] text-stone-600 dark:text-stone-400">
-                      {rec.detalles.map((d, i) => (
-                        <li key={i} className="flex justify-between">
-                          <span>• {d.insumoNombre || `Insumo #${d.insumoId}`}</span>
-                          <span className="font-mono font-bold">{d.cantidadNecesaria} {d.unidadMedida}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-[10px] text-stone-400 italic">Detalles cargados en servidor</p>
-                  )}
-                </div>
-              </div>
 
-              <div className="pt-3 border-t border-amber-200/80 dark:border-stone-800 flex items-center justify-between text-xs">
-                <div>
-                  <span className="text-[10px] text-stone-500 block">Costo Estimado Unitario</span>
-                  <span className="font-mono font-black text-amber-700 dark:text-amber-400">
-                    {formatCurrency(rec.costoUnitarioEstimado || 250)}
-                  </span>
+                <div className="pt-3 border-t border-amber-200/80 dark:border-stone-800 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-[10px] text-stone-500 block">Costo Estimado</span>
+                    <span className="font-mono font-black text-amber-700 dark:text-amber-400">
+                      {formatCurrency(rec.costoUnitarioEstimado || 250)}
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setProductoId(rec.productoId);
+                      setRecetaId(rec.id);
+                      setCantidadProgramada(rec.rendimientoUnidades);
+                      setShowNuevaOrdenModal(true);
+                    }}
+                  >
+                    Hornear
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setProductoId(rec.productoId);
-                    setRecetaId(rec.id);
-                    setCantidadProgramada(rec.rendimientoUnidades);
-                    setShowNuevaOrdenModal(true);
-                  }}
-                >
-                  Hornear Lote
-                </Button>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          <Pagination
+            currentPage={pageRecetas}
+            totalItems={recetas.length}
+            pageSize={PAGE_SIZE_BOXES}
+            onPageChange={setPageRecetas}
+            itemLabel="recetas y fórmulas"
+          />
         </div>
       )}
 
@@ -391,7 +423,7 @@ export const Produccion: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-amber-100/60 dark:divide-stone-800 text-xs">
-                {insumos.map(ins => (
+                {paginatedInsumos.map(ins => (
                   <tr key={ins.id} className="hover:bg-amber-50/40 dark:hover:bg-stone-800/40 transition-colors">
                     <td data-label="Insumo" className="py-3 px-4 font-bold text-stone-900 dark:text-stone-100">
                       {ins.nombre}
@@ -424,6 +456,14 @@ export const Produccion: React.FC = () => {
               </tbody>
             </table>
           </div>
+
+          <Pagination
+            currentPage={pageInsumos}
+            totalItems={insumos.length}
+            pageSize={PAGE_SIZE_TABLE}
+            onPageChange={setPageInsumos}
+            itemLabel="materias primas e insumos"
+          />
         </div>
       )}
 

@@ -7,11 +7,14 @@ import {
   DollarSign, PackageX, Calendar, ShieldAlert, CheckCircle2 
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { Pagination } from '../components/ui/Pagination';
 
 export const BajasMermas: React.FC = () => {
   const [bajas, setBajas] = useState<BajaProducto[]>([]);
   const [productos, setProductos] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   // Modal Nueva Baja
   const [showModal, setShowModal] = useState(false);
@@ -62,6 +65,7 @@ export const BajasMermas: React.FC = () => {
 
   const totalPerdida = bajas.reduce((acc, b) => acc + (b.costoPerdidaTotal || 0), 0);
   const totalUnidades = bajas.reduce((acc, b) => acc + (b.cantidad || 0), 0);
+  const paginatedBajas = bajas.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const getMotivoBadge = (mot: string) => {
     switch (mot) {
@@ -179,7 +183,7 @@ export const BajasMermas: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-red-100/60 dark:divide-stone-800 text-xs">
-            {bajas.map(b => (
+            {paginatedBajas.map(b => (
               <tr key={b.id} className="hover:bg-red-50/40 dark:hover:bg-stone-800/40 transition-colors">
                 <td data-label="Fecha / Id" className="py-3 px-4">
                   <p className="font-mono font-bold text-red-700 dark:text-red-400">BAJA-#{b.id}</p>
@@ -207,6 +211,18 @@ export const BajasMermas: React.FC = () => {
             ))}
           </tbody>
         </table>
+
+        {bajas.length > 0 && (
+          <div className="p-4 border-t border-red-200/80 dark:border-stone-800">
+            <Pagination
+              currentPage={currentPage}
+              totalItems={bajas.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setCurrentPage}
+              itemLabel="registros de baja"
+            />
+          </div>
+        )}
       </div>
 
       {/* Modal: Registrar Nueva Baja */}

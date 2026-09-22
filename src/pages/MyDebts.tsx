@@ -3,11 +3,14 @@ import { CreditCard, DollarSign, ArrowUpRight, ArrowDownLeft, ShieldCheck, Alert
 import { useAuth } from '../hooks/useAuth';
 import { contabilidadService } from '../services/contabilidadService';
 import { TransaccionDeuda } from '../services/pedidoService';
+import { Pagination } from '../components/ui/Pagination';
 
 export const MyDebts: React.FC = () => {
   const { user, refreshProfile } = useAuth();
   const [transacciones, setTransacciones] = useState<TransaccionDeuda[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const fetchDeudas = async () => {
     setLoading(true);
@@ -141,7 +144,7 @@ export const MyDebts: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-amber-100 dark:divide-stone-800">
-                  {transacciones.map((t) => (
+                  {transacciones.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((t) => (
                     <tr key={t.id} className="hover:bg-amber-50/50 dark:hover:bg-stone-800/40 transition-colors">
                       <td className="py-4 px-6 font-bold">
                         {t.tipo === 'Cargo_Deuda' ? (
@@ -172,6 +175,16 @@ export const MyDebts: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+
+              <div className="p-4 border-t border-amber-200/80 dark:border-stone-800">
+                <Pagination
+                  currentPage={currentPage}
+                  totalItems={transacciones.length}
+                  pageSize={PAGE_SIZE}
+                  onPageChange={setCurrentPage}
+                  itemLabel="transacciones de crédito"
+                />
+              </div>
             </div>
           )}
         </div>
