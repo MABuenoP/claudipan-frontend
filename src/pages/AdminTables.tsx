@@ -1,11 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Package, Layers, Users, Plus, Edit2, Trash2, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Package, Layers, Users, Plus, Edit2, Trash2, CheckCircle2, AlertCircle, RefreshCw, Camera, User } from 'lucide-react';
 import { productService, Product, ProductCreateRequest } from '../services/productService';
 import { categoryService, Categoria, CategoriaCreateRequest } from '../services/categoryService';
 import { authService, UsuarioAdmin, UpdateUsuarioAdminRequest } from '../services/authService';
 import { Pagination } from '../components/ui/Pagination';
+import { useAuth } from '../hooks/useAuth';
 
 export const AdminTables: React.FC = () => {
+  const { user: currentUser } = useAuth();
+  const canManageUsers = currentUser?.rol === 'Administrador' || currentUser?.rol === 'Gerente';
+  const canEditCredit = currentUser?.rol === 'Administrador' || currentUser?.rol === 'Gerente';
+
   const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'users'>('products');
   const [loading, setLoading] = useState(true);
 
@@ -47,7 +52,12 @@ export const AdminTables: React.FC = () => {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
   const [userForm, setUserForm] = useState<UpdateUsuarioAdminRequest>({
+    primerNombre: '',
+    segundoNombre: '',
+    primerApellido: '',
+    segundoApellido: '',
     nombre: '',
+    cedula: '',
     email: '',
     rol: 'Cliente',
     telefono: '',
@@ -55,8 +65,10 @@ export const AdminTables: React.FC = () => {
     limiteCredito: 500000,
     activo: true,
     password: '',
+    fotoBase64: '',
   });
 
+  const userFileInputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fetchAllData = async () => {
@@ -140,11 +152,15 @@ export const AdminTables: React.FC = () => {
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
+    const payload = {
+      ...userForm,
+      nombre: [userForm.primerNombre, userForm.segundoNombre, userForm.primerApellido, userForm.segundoApellido].filter(Boolean).join(' ') || userForm.nombre,
+    };
     let res;
     if (editingUserId) {
-      res = await authService.updateUserAdmin(editingUserId, userForm);
+      res = await authService.updateUserAdmin(editingUserId, payload);
     } else {
-      res = await authService.createUserAdmin(userForm);
+      res = await authService.createUserAdmin(payload);
     }
 
     if (res.success) {
@@ -428,35 +444,48 @@ export const AdminTables: React.FC = () => {
           <div className="space-y-4">
             <div className="bg-white dark:bg-stone-900 rounded-3xl border border-amber-200/80 dark:border-stone-800 shadow-sm overflow-hidden">
               <div className="p-6 border-b border-amber-200/80 dark:border-stone-800 flex items-center justify-between">
-                <h2 className="text-lg font-heading font-bold text-stone-900 dark:text-stone-100">Usuarios & Asignación de Roles</h2>
-                <button
-                  onClick={() => {
-                    setEditingUserId(null);
-                    setUserForm({
-                      nombre: '',
-                      email: '',
-                      rol: 'Cliente',
-                      telefono: '',
-                      direccion: '',
-                      limiteCredito: 500000,
-                      activo: true,
-                      password: 'Claudipan123*',
-                    });
-                    setIsUserModalOpen(true);
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  Nuevo Usuario
-                </button>
+                <div>
+                  <h2 className="text-lg font-heading font-bold text-stone-900 dark:text-stone-100">Usuarios & Gestión de Cuentas</h2>
+                  <p className="text-xs text-stone-500 dark:text-stone-400">
+                    Solo Gerente y Administrador tienen permisos para editar datos y modificar topes de crédito uno por uno.
+                  </p>
+                </div>
+                {canManageUsers && (
+                  <button
+                    onClick={() => {
+                      setEditingUserId(null);
+                      setUserForm({
+                        primerNombre: '',
+                        segundoNombre: '',
+                        primerApellido: '',
+                        segundoApellido: '',
+                        nombre: '',
+                        cedula: '',
+                        email: '',
+                        rol: 'Cliente',
+                        telefono: '',
+                        direccion: '',
+                        limiteCredito: 500000,
+                        activo: true,
+                        password: 'Claudipan123*',
+                        fotoBase64: '',
+                      });
+                      setIsUserModalOpen(true);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Nuevo Usuario
+                  </button>
+                )}
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm text-stone-700 dark:text-stone-300">
                   <thead className="bg-amber-500/10 dark:bg-stone-800/80 text-xs uppercase font-extrabold text-stone-600 dark:text-stone-400 border-b border-amber-200/80 dark:border-stone-800">
                     <tr>
-                      <th className="py-3.5 px-6">Nombre</th>
-                      <th className="py-3.5 px-6">Email</th>
+                      <th className="py-3.5 px-6">Usuario</th>
+                      <th className="py-3.5 px-6">Email & Cédula</th>
                       <th className="py-3.5 px-6">Rol</th>
                       <th className="py-3.5 px-6">Cupo Crédito</th>
                       <th className="py-3.5 px-6">Deuda Actual</th>
@@ -465,51 +494,100 @@ export const AdminTables: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-amber-100 dark:divide-stone-800">
-                    {users.slice((pageUsers - 1) * PAGE_SIZE_TABLE, pageUsers * PAGE_SIZE_TABLE).map((u) => (
-                      <tr key={u.id} className="hover:bg-amber-50/50 dark:hover:bg-stone-800/40 transition-colors">
-                        <td className="py-4 px-6 font-bold text-stone-900 dark:text-stone-100">{u.nombre}</td>
-                        <td className="py-4 px-6 text-stone-600 dark:text-stone-400">{u.email}</td>
-                        <td className="py-4 px-6">
-                          <span className="px-3 py-1 rounded-xl text-xs font-extrabold bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30">
-                            {u.rol}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6 font-semibold text-emerald-600 dark:text-emerald-400">${u.limiteCredito.toLocaleString('es-CO')}</td>
-                        <td className="py-4 px-6 font-semibold text-red-600 dark:text-red-400">${u.deudaActual.toLocaleString('es-CO')}</td>
-                        <td className="py-4 px-6">
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold ${u.activo ? 'bg-emerald-500/20 text-emerald-700' : 'bg-red-500/20 text-red-700'}`}>
-                            {u.activo ? 'Activo' : 'Inactivo'}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6 text-right space-x-2">
-                          <button
-                            onClick={() => {
-                              setEditingUserId(u.id);
-                              setUserForm({
-                                nombre: u.nombre,
-                                email: u.email,
-                                rol: u.rol,
-                                telefono: u.telefono || '',
-                                direccion: u.direccion || '',
-                                limiteCredito: u.limiteCredito,
-                                activo: u.activo,
-                                password: '',
-                              });
-                              setIsUserModalOpen(true);
-                            }}
-                            className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUser(u.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {users.slice((pageUsers - 1) * PAGE_SIZE_TABLE, pageUsers * PAGE_SIZE_TABLE).map((u) => {
+                      const displayName = [u.primerNombre, u.segundoNombre, u.primerApellido, u.segundoApellido].filter(Boolean).join(' ') || u.nombre;
+                      return (
+                        <tr key={u.id} className="hover:bg-amber-50/50 dark:hover:bg-stone-800/40 transition-colors">
+                          <td className="py-4 px-6 font-bold text-stone-900 dark:text-stone-100">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 overflow-hidden flex items-center justify-center font-bold text-amber-800 dark:text-amber-300 shrink-0">
+                                {u.fotoBase64 ? (
+                                  <img src={u.fotoBase64} alt={displayName} className="w-full h-full object-cover" />
+                                ) : (
+                                  <span>{displayName.charAt(0).toUpperCase()}</span>
+                                )}
+                              </div>
+                              <div>
+                                <p className="font-bold text-stone-900 dark:text-stone-100">{displayName}</p>
+                                <p className="text-xs text-stone-500 dark:text-stone-400">{u.telefono || 'Sin teléfono'}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6">
+                            <p className="text-stone-800 dark:text-stone-200">{u.email}</p>
+                            <p className="text-xs text-stone-500 dark:text-stone-400">CC: {u.cedula || 'Sin registrar'}</p>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className="px-3 py-1 rounded-xl text-xs font-extrabold bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30">
+                              {u.rol}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 font-semibold text-emerald-600 dark:text-emerald-400">
+                            ${(u.limiteCredito || 0).toLocaleString('es-CO')}
+                          </td>
+                          <td className="py-4 px-6 font-semibold text-red-600 dark:text-red-400">
+                            ${(u.deudaActual || 0).toLocaleString('es-CO')}
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold ${u.activo ? 'bg-emerald-500/20 text-emerald-700' : 'bg-red-500/20 text-red-700'}`}>
+                              {u.activo ? 'Activo' : 'Inactivo'}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 text-right space-x-2">
+                            {canManageUsers && (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setEditingUserId(u.id);
+                                    let pNom = u.primerNombre || '';
+                                    let sNom = u.segundoNombre || '';
+                                    let pApe = u.primerApellido || '';
+                                    let sApe = u.segundoApellido || '';
+
+                                    if (!pNom && !pApe && u.nombre) {
+                                      const parts = u.nombre.trim().split(/\s+/);
+                                      if (parts.length === 1) pNom = parts[0];
+                                      else if (parts.length === 2) { pNom = parts[0]; pApe = parts[1]; }
+                                      else if (parts.length === 3) { pNom = parts[0]; pApe = parts[1]; sApe = parts[2]; }
+                                      else if (parts.length >= 4) { pNom = parts[0]; sNom = parts[1]; pApe = parts[2]; sApe = parts.slice(3).join(' '); }
+                                    }
+
+                                    setUserForm({
+                                      primerNombre: pNom,
+                                      segundoNombre: sNom,
+                                      primerApellido: pApe,
+                                      segundoApellido: sApe,
+                                      nombre: u.nombre,
+                                      cedula: u.cedula || '',
+                                      email: u.email,
+                                      rol: u.rol,
+                                      telefono: u.telefono || '',
+                                      direccion: u.direccion || '',
+                                      limiteCredito: u.limiteCredito,
+                                      activo: u.activo,
+                                      password: '',
+                                      fotoBase64: u.fotoBase64 || '',
+                                    });
+                                    setIsUserModalOpen(true);
+                                  }}
+                                  title="Editar usuario"
+                                  className="p-2 text-amber-600 hover:bg-amber-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteUser(u.id)}
+                                  title="Desactivar usuario"
+                                  className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -659,7 +737,7 @@ export const AdminTables: React.FC = () => {
 
               <div className="pt-4 flex justify-end gap-2">
                 <button type="button" onClick={() => setIsProductModalOpen(false)} className="px-4 py-2 rounded-xl border text-xs font-bold">Cancelar</button>
-                <button type="submit" className="px-5 py-2 rounded-xl bg-blue-600 text-white text-xs font-extrabold">Guardar</button>
+                <button type="submit" className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-extrabold">Guardar</button>
               </div>
             </form>
           </div>
@@ -692,7 +770,7 @@ export const AdminTables: React.FC = () => {
               </div>
               <div className="pt-4 flex justify-end gap-2">
                 <button type="button" onClick={() => setIsCategoryModalOpen(false)} className="px-4 py-2 rounded-xl border text-xs font-bold">Cancelar</button>
-                <button type="submit" className="px-5 py-2 rounded-xl bg-blue-600 text-white text-xs font-extrabold">Guardar</button>
+                <button type="submit" className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-extrabold">Guardar</button>
               </div>
             </form>
           </div>
@@ -702,92 +780,220 @@ export const AdminTables: React.FC = () => {
       {/* Modal User */}
       {isUserModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-stone-900 w-full max-w-lg rounded-3xl p-6 space-y-4 border border-amber-200 dark:border-stone-800">
-            <h3 className="text-xl font-bold">{editingUserId ? 'Editar Usuario / Rol' : 'Crear Nuevo Usuario'}</h3>
-            <form onSubmit={handleSaveUser} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white dark:bg-stone-900 w-full max-w-2xl rounded-3xl p-6 space-y-4 border border-amber-200 dark:border-stone-800 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-2 border-b border-stone-200 dark:border-stone-800">
+              <h3 className="text-xl font-bold">{editingUserId ? 'Editar Usuario / Rol' : 'Crear Nuevo Usuario'}</h3>
+              <button
+                type="button"
+                onClick={() => setIsUserModalOpen(false)}
+                className="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 dark:hover:text-stone-200"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveUser} className="space-y-4">
+              {/* Photo uploader */}
+              <div className="p-3 bg-amber-50/60 dark:bg-stone-950 rounded-2xl border border-amber-200/80 dark:border-stone-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/30 overflow-hidden flex items-center justify-center shrink-0">
+                    {userForm.fotoBase64 ? (
+                      <img src={userForm.fotoBase64} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-6 h-6 text-amber-700 dark:text-amber-400" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold">Foto del Usuario</p>
+                    <p className="text-[11px] text-stone-500 dark:text-stone-400">Formato Base64 relacionado</p>
+                  </div>
+                </div>
                 <div>
-                  <label className="block text-xs font-bold mb-1">Nombre</label>
+                  <button
+                    type="button"
+                    onClick={() => userFileInputRef.current?.click()}
+                    className="px-3 py-1.5 rounded-xl bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-xs font-bold hover:bg-stone-50 dark:hover:bg-stone-700"
+                  >
+                    Seleccionar Foto
+                  </button>
+                  <input
+                    ref={userFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        setUserForm((prev: any) => ({ ...prev, fotoBase64: event.target?.result as string }));
+                      };
+                      reader.readAsDataURL(file);
+                    }}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+
+              {/* Name breakdown */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold mb-1">Primer Nombre *</label>
                   <input
                     type="text"
                     required
-                    value={userForm.nombre}
-                    onChange={(e) => setUserForm({ ...userForm, nombre: e.target.value })}
-                    className="w-full p-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
+                    value={userForm.primerNombre || ''}
+                    onChange={(e) => setUserForm({ ...userForm, primerNombre: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold mb-1">Email</label>
+                  <label className="block text-xs font-bold mb-1">Segundo Nombre (opcional)</label>
+                  <input
+                    type="text"
+                    value={userForm.segundoNombre || ''}
+                    onChange={(e) => setUserForm({ ...userForm, segundoNombre: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold mb-1">Primer Apellido *</label>
+                  <input
+                    type="text"
+                    required
+                    value={userForm.primerApellido || ''}
+                    onChange={(e) => setUserForm({ ...userForm, primerApellido: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold mb-1">Segundo Apellido (opcional)</label>
+                  <input
+                    type="text"
+                    value={userForm.segundoApellido || ''}
+                    onChange={(e) => setUserForm({ ...userForm, segundoApellido: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold mb-1">Cédula</label>
+                  <input
+                    type="text"
+                    value={userForm.cedula || ''}
+                    onChange={(e) => setUserForm({ ...userForm, cedula: e.target.value })}
+                    placeholder="1020304050"
+                    className="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold mb-1">Email *</label>
                   <input
                     type="email"
                     required
                     value={userForm.email}
                     onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-                    className="w-full p-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
+                    className="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold mb-1">Rol Asignado</label>
                   <select
                     value={userForm.rol}
                     onChange={(e) => setUserForm({ ...userForm, rol: e.target.value })}
-                    className="w-full p-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm font-bold"
+                    className="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm font-bold"
                   >
                     <option value="Administrador">Administrador</option>
-                    <option value="Secretaria">Secretaria</option>
-                    <option value="Tecnico">Tecnico</option>
+                    <option value="Gerente">Gerente</option>
+                    <option value="Contable">Contable</option>
+                    <option value="Panadero">Panadero</option>
+                    <option value="Vendedor">Vendedor</option>
                     <option value="Cliente">Cliente</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold mb-1">Cupo Crédito ($)</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold">Cupo Crédito ($)</label>
+                    {!canEditCredit && (
+                      <span className="text-[10px] text-amber-600 font-bold">Solo Gerente/Admin</span>
+                    )}
+                  </div>
                   <input
                     type="number"
+                    disabled={!canEditCredit}
                     value={userForm.limiteCredito}
-                    onChange={(e) => setUserForm({ ...userForm, limiteCredito: parseFloat(e.target.value) })}
-                    className="w-full p-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
+                    onChange={(e) => setUserForm({ ...userForm, limiteCredito: parseFloat(e.target.value) || 0 })}
+                    className={`w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm ${
+                      !canEditCredit ? 'opacity-60 cursor-not-allowed bg-stone-100 dark:bg-stone-800' : ''
+                    }`}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold mb-1">Teléfono</label>
+                  <label className="block text-xs font-bold mb-1">Teléfono / Celular</label>
                   <input
                     type="text"
                     value={userForm.telefono}
                     onChange={(e) => setUserForm({ ...userForm, telefono: e.target.value })}
-                    className="w-full p-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
+                    placeholder="300 123 4567"
+                    className="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold mb-1">Contraseña (Opcional)</label>
+                  <label className="block text-xs font-bold mb-1">Dirección</label>
                   <input
-                    type="password"
-                    value={userForm.password}
-                    onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
-                    placeholder="Contraseña nueva..."
-                    className="w-full p-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
+                    type="text"
+                    value={userForm.direccion}
+                    onChange={(e) => setUserForm({ ...userForm, direccion: e.target.value })}
+                    placeholder="Calle # Carrera..."
+                    className="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 pt-2">
+              <div>
+                <label className="block text-xs font-bold mb-1">
+                  {editingUserId ? 'Nueva Contraseña (dejar en blanco para mantener la actual)' : 'Contraseña Inicial *'}
+                </label>
+                <input
+                  type="password"
+                  value={userForm.password}
+                  onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                  placeholder={editingUserId ? 'Mantener contraseña actual' : 'Mínimo 6 caracteres'}
+                  className="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
                 <input
                   type="checkbox"
                   id="activo"
                   checked={userForm.activo}
                   onChange={(e) => setUserForm({ ...userForm, activo: e.target.checked })}
                 />
-                <label htmlFor="activo" className="text-xs font-bold">Usuario Activo</label>
+                <label htmlFor="activo" className="text-xs font-bold">Usuario Activo en el Sistema</label>
               </div>
 
-              <div className="pt-4 flex justify-end gap-2">
-                <button type="button" onClick={() => setIsUserModalOpen(false)} className="px-4 py-2 rounded-xl border text-xs font-bold">Cancelar</button>
-                <button type="submit" className="px-5 py-2 rounded-xl bg-blue-600 text-white text-xs font-extrabold">Guardar</button>
+              <div className="pt-4 flex justify-end gap-2 border-t border-stone-200 dark:border-stone-800">
+                <button
+                  type="button"
+                  onClick={() => setIsUserModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border text-xs font-bold hover:bg-stone-50 dark:hover:bg-stone-800"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-extrabold shadow-md shadow-amber-600/20"
+                >
+                  Guardar Usuario
+                </button>
               </div>
             </form>
           </div>

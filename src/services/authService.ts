@@ -3,6 +3,10 @@ import { api, ApiResponse } from './api';
 export interface User {
   id: number;
   nombre: string;
+  primerNombre?: string;
+  segundoNombre?: string;
+  primerApellido?: string;
+  segundoApellido?: string;
   email: string;
   cedula?: string;
   rol: 'Administrador' | 'Gerente' | 'Contable' | 'Panadero' | 'Vendedor' | 'Cliente' | string;
@@ -11,6 +15,7 @@ export interface User {
   redesSociales?: string;
   limiteCredito: number;
   deudaActual: number;
+  fotoBase64?: string;
   token?: string;
   refreshToken?: string;
 }
@@ -21,7 +26,11 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
-  nombre: string;
+  primerNombre?: string;
+  segundoNombre?: string;
+  primerApellido?: string;
+  segundoApellido?: string;
+  nombre?: string;
   email: string;
   password?: string;
   cedula?: string;
@@ -30,23 +39,37 @@ export interface RegisterRequest {
   direccion?: string;
   redesSociales?: string;
   limiteCredito?: number;
+  fotoBase64?: string;
 }
 
-export type UpdateUsuarioAdminRequest = any;
-
 export interface UpdateProfileRequest {
-  nombre: string;
+  primerNombre?: string;
+  segundoNombre?: string;
+  primerApellido?: string;
+  segundoApellido?: string;
+  nombre?: string;
   cedula?: string;
+  email?: string;
   telefono?: string;
   direccion?: string;
   redesSociales?: string;
+  fotoBase64?: string;
   currentPassword?: string;
   newPassword?: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
 }
 
 export interface UsuarioAdmin {
   id: number;
   nombre: string;
+  primerNombre?: string;
+  segundoNombre?: string;
+  primerApellido?: string;
+  segundoApellido?: string;
   email: string;
   cedula?: string;
   rol: string;
@@ -57,6 +80,25 @@ export interface UsuarioAdmin {
   deudaActual: number;
   activo: boolean;
   fechaCreacion: string;
+  fotoBase64?: string;
+}
+
+export interface UpdateUsuarioAdminRequest {
+  primerNombre?: string;
+  segundoNombre?: string;
+  primerApellido?: string;
+  segundoApellido?: string;
+  nombre?: string;
+  cedula?: string;
+  email: string;
+  rol: string;
+  telefono?: string;
+  direccion?: string;
+  redesSociales?: string;
+  limiteCredito?: number;
+  activo?: boolean;
+  password?: string;
+  fotoBase64?: string;
 }
 
 export const authService = {
@@ -91,15 +133,19 @@ export const authService = {
     return await api.put<User>('/auth/profile', data);
   },
 
+  changePassword: async (data: ChangePasswordRequest): Promise<ApiResponse<boolean>> => {
+    return await api.post<boolean>('/auth/change-password', data);
+  },
+
   getAllUsers: async (): Promise<ApiResponse<UsuarioAdmin[]>> => {
     return await api.get<UsuarioAdmin[]>('/auth/users');
   },
 
-  createUserAdmin: async (data: any): Promise<ApiResponse<UsuarioAdmin>> => {
+  createUserAdmin: async (data: UpdateUsuarioAdminRequest): Promise<ApiResponse<UsuarioAdmin>> => {
     return await api.post<UsuarioAdmin>('/auth/users', data);
   },
 
-  updateUserAdmin: async (id: number, data: any): Promise<ApiResponse<UsuarioAdmin>> => {
+  updateUserAdmin: async (id: number, data: UpdateUsuarioAdminRequest): Promise<ApiResponse<UsuarioAdmin>> => {
     return await api.put<UsuarioAdmin>(`/auth/users/${id}`, data);
   },
 
