@@ -30,27 +30,30 @@ export const App = () => {
       {/* Top Navbar */}
       <Navbar onToggleSidebar={() => setSidebarOpen(true)} />
 
-      {/* Mobile Drawer Sidebar */}
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {/* Main Layout Container: Left Work Sidebar + Page Content */}
+      <div className="flex-1 flex w-full">
+        {/* Left Work Sidebar (Docked on desktop when authenticated & Drawer on mobile) */}
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      {/* Main Page Content */}
-      <main className="flex-1">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/catalog" element={<Catalog />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/mis-deudas" element={<MyDebts />} />
-          <Route path="/pos" element={<VentasPOS />} />
-          <Route path="/produccion" element={<Produccion />} />
-          <Route path="/compras" element={<ComprasProveedores />} />
-          <Route path="/gastos" element={<GastosNomina />} />
-          <Route path="/bajas" element={<BajasMermas />} />
-          <Route path="/contabilidad" element={<Accounting />} />
-          <Route path="/admin/tables" element={<AdminTables />} />
-        </Routes>
-      </main>
+        {/* Main Page Content */}
+        <main className="flex-1 min-w-0">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/catalog" element={<Catalog />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/mis-deudas" element={<MyDebts />} />
+            <Route path="/pos" element={<VentasPOS />} />
+            <Route path="/produccion" element={<Produccion />} />
+            <Route path="/compras" element={<ComprasProveedores />} />
+            <Route path="/gastos" element={<GastosNomina />} />
+            <Route path="/bajas" element={<BajasMermas />} />
+            <Route path="/contabilidad" element={<Accounting />} />
+            <Route path="/admin/tables" element={<AdminTables />} />
+          </Routes>
+        </main>
+      </div>
 
       {/* Footer */}
       <Footer />

@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   ShoppingBag, User, Menu, Search, Sun, Moon, LogOut, 
-  CreditCard, Shield, ChevronDown, Package, DollarSign, 
-  Settings, Flame, Truck, Receipt, Trash2, ShoppingCart
+  ChevronDown, Package, KeyRound
 } from 'lucide-react';
 import { useCart } from '../../hooks/useCart';
 import { useAuth } from '../../hooks/useAuth';
@@ -22,6 +21,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [profileModalTab, setProfileModalTab] = useState<'profile' | 'password'>('profile');
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -42,7 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
       case 'Contable': return 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30';
       case 'Panadero': return 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30';
       case 'Vendedor': return 'bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30';
-      default: return 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30';
+      default: return 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30';
     }
   };
 
@@ -52,12 +52,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             
-            {/* Logo Brand */}
+            {/* Logo Brand & Mobile / Work Menu Button */}
             <div className="flex items-center gap-3">
               <button
                 onClick={onToggleSidebar}
-                className="lg:hidden p-2 text-stone-600 dark:text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-white dark:hover:bg-stone-900 rounded-xl transition-colors shadow-sm"
-                aria-label="Abrir menú"
+                className="p-2 text-stone-600 dark:text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-white dark:hover:bg-stone-900 rounded-xl transition-colors shadow-sm"
+                aria-label="Abrir menú de trabajo"
+                title="Abrir menú de trabajo"
               >
                 <Menu className="w-6 h-6" />
               </button>
@@ -91,80 +92,28 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
               <Search className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
             </form>
 
-            {/* Desktop Navigation Links */}
-            <nav className="hidden lg:flex items-center gap-4 text-xs font-bold">
+            {/* Desktop Top Normal Links: Inicio y Catálogo */}
+            <nav className="hidden md:flex items-center gap-2 text-xs font-bold">
               <Link
                 to="/"
-                className={`transition-colors py-1 px-2 rounded-lg ${
-                  isActive('/') ? 'text-amber-700 dark:text-amber-400 bg-amber-100/50 dark:bg-stone-800' : 'text-stone-700 dark:text-stone-300 hover:text-amber-700'
+                className={`transition-colors py-2 px-3 rounded-xl ${
+                  isActive('/') ? 'text-amber-700 dark:text-amber-400 bg-amber-100/70 dark:bg-stone-800' : 'text-stone-700 dark:text-stone-300 hover:text-amber-700 hover:bg-amber-50/50'
                 }`}
               >
                 Inicio
               </Link>
               <Link
                 to="/catalog"
-                className={`transition-colors py-1 px-2 rounded-lg ${
-                  isActive('/catalog') ? 'text-amber-700 dark:text-amber-400 bg-amber-100/50 dark:bg-stone-800' : 'text-stone-700 dark:text-stone-300 hover:text-amber-700'
+                className={`transition-colors py-2 px-3 rounded-xl ${
+                  isActive('/catalog') ? 'text-amber-700 dark:text-amber-400 bg-amber-100/70 dark:bg-stone-800' : 'text-stone-700 dark:text-stone-300 hover:text-amber-700 hover:bg-amber-50/50'
                 }`}
               >
                 Catálogo
               </Link>
-
-              {/* Rol Panadero */}
-              {(user?.rol === 'Panadero' || user?.rol === 'Administrador' || user?.rol === 'Gerente') && (
-                <Link
-                  to="/produccion"
-                  className={`transition-colors py-1 px-2 rounded-lg flex items-center gap-1 ${
-                    isActive('/produccion') ? 'text-amber-700 dark:text-amber-400 bg-amber-100/50 dark:bg-stone-800' : 'text-stone-700 dark:text-stone-300 hover:text-amber-700'
-                  }`}
-                >
-                  <Flame className="w-3.5 h-3.5 text-amber-500" />
-                  Producción
-                </Link>
-              )}
-
-              {/* Rol Vendedor */}
-              {(user?.rol === 'Vendedor' || user?.rol === 'Administrador' || user?.rol === 'Gerente') && (
-                <Link
-                  to="/pos"
-                  className={`transition-colors py-1 px-2 rounded-lg flex items-center gap-1 ${
-                    isActive('/pos') ? 'text-amber-700 dark:text-amber-400 bg-amber-100/50 dark:bg-stone-800' : 'text-stone-700 dark:text-stone-300 hover:text-amber-700'
-                  }`}
-                >
-                  <ShoppingCart className="w-3.5 h-3.5 text-blue-500" />
-                  POS Ventas
-                </Link>
-              )}
-
-              {/* Rol Contable / Gerente */}
-              {(user?.rol === 'Contable' || user?.rol === 'Gerente' || user?.rol === 'Administrador') && (
-                <Link
-                  to="/contabilidad"
-                  className={`transition-colors py-1 px-2 rounded-lg flex items-center gap-1 ${
-                    isActive('/contabilidad') ? 'text-amber-700 dark:text-amber-400 bg-amber-100/50 dark:bg-stone-800' : 'text-stone-700 dark:text-stone-300 hover:text-amber-700'
-                  }`}
-                >
-                  <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
-                  Contabilidad P&G
-                </Link>
-              )}
-
-              {/* Rol Administrador */}
-              {user?.rol === 'Administrador' && (
-                <Link
-                  to="/admin/tables"
-                  className={`transition-colors py-1 px-2 rounded-lg flex items-center gap-1 ${
-                    isActive('/admin/tables') ? 'text-amber-700 dark:text-amber-400 bg-amber-100/50 dark:bg-stone-800' : 'text-stone-700 dark:text-stone-300 hover:text-amber-700'
-                  }`}
-                >
-                  <Settings className="w-3.5 h-3.5 text-purple-500" />
-                  Admin Total
-                </Link>
-              )}
             </nav>
 
-            {/* Right Action Icons */}
-            <div className="flex items-center gap-2">
+            {/* Right Action Icons: Modo Claro/Oscuro, Carrito y Menú de Usuario */}
+            <div className="flex items-center gap-2.5">
               {/* Theme Switcher Toggle Button */}
               <button
                 type="button"
@@ -186,11 +135,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
                 )}
               </button>
 
-              {/* Cart Icon Button */}
+              {/* Shopping Cart Button */}
               <Link
                 to="/cart"
                 className="relative p-2 bg-white hover:bg-amber-100/70 dark:bg-stone-900/80 dark:hover:bg-stone-800 text-stone-800 dark:text-stone-200 hover:text-amber-700 dark:hover:text-amber-400 rounded-xl border border-amber-200/80 dark:border-stone-800 transition-all shadow-sm group"
                 aria-label="Ver Carrito de Compras"
+                title="Ver Carrito de Compras"
               >
                 <ShoppingBag className="w-5 h-5 group-hover:scale-110 transition-transform" />
                 {totalItems > 0 && (
@@ -200,12 +150,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
                 )}
               </Link>
 
-              {/* Auth Profile Menu Button Dropdown */}
+              {/* Auth Profile Menu Button & Dropdown */}
               {isAuthenticated && user ? (
                 <div className="relative">
                   <button
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                    className="flex items-center gap-2 p-1.5 pr-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl transition-all shadow-md shadow-amber-600/20 active:scale-95"
+                    className="flex items-center gap-2 p-1.5 pr-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl transition-all shadow-md shadow-amber-600/20 active:scale-95 cursor-pointer"
                   >
                     <div className="w-7 h-7 rounded-lg bg-white/20 text-white font-bold text-xs flex items-center justify-center border border-white/30">
                       {user.nombre.charAt(0).toUpperCase()}
@@ -216,7 +166,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
                     <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
 
-                  {/* Dropdown Menu */}
+                  {/* Dropdown Menu - Submenú exclusivo: Mi Perfil, Mis Compras, Contraseña, Cerrar Sesión */}
                   {isUserMenuOpen && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
@@ -238,118 +188,50 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
                           </div>
                         </div>
 
-                        {/* Profile Modal */}
+                        {/* 1. Mi Perfil */}
                         <button
                           onClick={() => {
+                            setProfileModalTab('profile');
                             setIsUserMenuOpen(false);
                             setIsProfileModalOpen(true);
                           }}
-                          className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-stone-700 dark:text-stone-300 hover:bg-amber-100/50 dark:hover:bg-stone-800 rounded-xl transition-colors text-left"
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-stone-700 dark:text-stone-300 hover:bg-amber-100/50 dark:hover:bg-stone-800 rounded-xl transition-colors text-left cursor-pointer"
                         >
                           <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                           Mi Perfil
                         </button>
 
+                        {/* 2. Mis Compras */}
                         <Link
                           to="/dashboard"
                           onClick={() => setIsUserMenuOpen(false)}
-                          className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-stone-700 dark:text-stone-300 hover:bg-amber-100/50 dark:hover:bg-stone-800 rounded-xl transition-colors"
+                          className="flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-stone-700 dark:text-stone-300 hover:bg-amber-100/50 dark:hover:bg-stone-800 rounded-xl transition-colors"
                         >
                           <Package className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                          Mis Compras / Pedidos
+                          Mis Compras
                         </Link>
 
-                        {user.rol === 'Cliente' && (
-                          <Link
-                            to="/mis-deudas"
-                            onClick={() => setIsUserMenuOpen(false)}
-                            className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-stone-700 dark:text-stone-300 hover:bg-amber-100/50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                          >
-                            <CreditCard className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                            Mis Deudas / Cupo Fiado
-                          </Link>
-                        )}
+                        {/* 3. Contraseña */}
+                        <button
+                          onClick={() => {
+                            setProfileModalTab('password');
+                            setIsUserMenuOpen(false);
+                            setIsProfileModalOpen(true);
+                          }}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-stone-700 dark:text-stone-300 hover:bg-amber-100/50 dark:hover:bg-stone-800 rounded-xl transition-colors text-left cursor-pointer"
+                        >
+                          <KeyRound className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                          Contraseña
+                        </button>
 
-                        {(user.rol === 'Panadero' || user.rol === 'Administrador' || user.rol === 'Gerente') && (
-                          <Link
-                            to="/produccion"
-                            onClick={() => setIsUserMenuOpen(false)}
-                            className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-stone-700 dark:text-stone-300 hover:bg-amber-100/50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                          >
-                            <Flame className="w-4 h-4 text-amber-500" />
-                            Módulo de Producción
-                          </Link>
-                        )}
-
-                        {(user.rol === 'Vendedor' || user.rol === 'Administrador' || user.rol === 'Gerente') && (
-                          <Link
-                            to="/pos"
-                            onClick={() => setIsUserMenuOpen(false)}
-                            className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-stone-700 dark:text-stone-300 hover:bg-amber-100/50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                          >
-                            <ShoppingCart className="w-4 h-4 text-blue-500" />
-                            Terminal POS Ventas
-                          </Link>
-                        )}
-
-                        {(user.rol === 'Contable' || user.rol === 'Gerente' || user.rol === 'Administrador') && (
-                          <Link
-                            to="/contabilidad"
-                            onClick={() => setIsUserMenuOpen(false)}
-                            className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-stone-700 dark:text-stone-300 hover:bg-amber-100/50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                          >
-                            <DollarSign className="w-4 h-4 text-emerald-500" />
-                            Contabilidad & P&G
-                          </Link>
-                        )}
-
-                        {(user.rol === 'Administrador' || user.rol === 'Gerente' || user.rol === 'Contable') && (
-                          <>
-                            <Link
-                              to="/compras"
-                              onClick={() => setIsUserMenuOpen(false)}
-                              className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-stone-700 dark:text-stone-300 hover:bg-amber-100/50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                            >
-                              <Truck className="w-4 h-4 text-teal-500" />
-                              Compras a Proveedores
-                            </Link>
-                            <Link
-                              to="/gastos"
-                              onClick={() => setIsUserMenuOpen(false)}
-                              className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-stone-700 dark:text-stone-300 hover:bg-amber-100/50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                            >
-                              <Receipt className="w-4 h-4 text-rose-500" />
-                              Servicios & Nómina
-                            </Link>
-                            <Link
-                              to="/bajas"
-                              onClick={() => setIsUserMenuOpen(false)}
-                              className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-stone-700 dark:text-stone-300 hover:bg-amber-100/50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4 text-red-500" />
-                              Bajas & Mermas
-                            </Link>
-                          </>
-                        )}
-
-                        {user.rol === 'Administrador' && (
-                          <Link
-                            to="/admin/tables"
-                            onClick={() => setIsUserMenuOpen(false)}
-                            className="flex items-center gap-3 px-3 py-2 text-xs font-bold text-stone-700 dark:text-stone-300 hover:bg-amber-100/50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                          >
-                            <Settings className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                            Control Total CRUDs & Auditoría
-                          </Link>
-                        )}
-
+                        {/* 4. Cerrar Sesión */}
                         <div className="pt-1 border-t border-stone-100 dark:border-stone-800">
                           <button
                             onClick={() => {
                               setIsUserMenuOpen(false);
                               logout();
                             }}
-                            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer"
                           >
                             <LogOut className="w-4 h-4" />
                             Cerrar Sesión
@@ -373,10 +255,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
         </div>
       </header>
 
-      {/* Profile Modal */}
+      {/* Profile & Password Modal */}
       <ProfileModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
+        initialTab={profileModalTab}
       />
     </>
   );
