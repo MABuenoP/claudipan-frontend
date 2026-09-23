@@ -214,7 +214,7 @@ export const Login: React.FC = () => {
       if (res.success) {
         setForgotSuccess(
           res.message ||
-            'Se ha enviado un correo con tu nueva contraseña temporal y el botón de activación.'
+          'Se ha enviado un correo con tu nueva contraseña temporal y el botón de activación.'
         );
       } else {
         setErrorMessage(
@@ -230,12 +230,11 @@ export const Login: React.FC = () => {
 
   return (
     <div
-      className={`mx-auto px-4 py-10 transition-all duration-300 ${
-        mode === 'register' ? 'max-w-2xl' : 'max-w-md'
-      }`}
+      className={`mx-auto px-4 py-10 transition-all duration-300 ${mode === 'register' ? 'max-w-2xl' : 'max-w-md'
+        }`}
     >
       <div className="bg-white dark:bg-stone-900/90 border border-amber-300/80 dark:border-amber-500/20 p-6 sm:p-8 rounded-3xl space-y-6 backdrop-blur-md shadow-2xl transition-colors duration-300 relative">
-        
+
         {/* Header Logo & Title */}
         <div className="text-center space-y-2">
           <img
@@ -247,8 +246,8 @@ export const Login: React.FC = () => {
             {mode === 'register'
               ? 'Crear Cuenta en Claudipan'
               : mode === 'forgot'
-              ? 'Recuperar Contraseña'
-              : 'Iniciar Sesión'}
+                ? 'Recuperar Contraseña'
+                : 'Iniciar Sesión'}
           </h1>
           <p className="text-xs text-stone-600 dark:text-stone-400">
             Panadería & Pastelería SENA ADSO
@@ -264,11 +263,10 @@ export const Login: React.FC = () => {
               setErrorMessage(null);
               setForgotSuccess(null);
             }}
-            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-              mode === 'login'
+            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${mode === 'login'
                 ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
                 : 'text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
-            }`}
+              }`}
           >
             Ingresar
           </button>
@@ -279,11 +277,10 @@ export const Login: React.FC = () => {
               setErrorMessage(null);
               setForgotSuccess(null);
             }}
-            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-              mode === 'register'
+            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${mode === 'register'
                 ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
                 : 'text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
-            }`}
+              }`}
           >
             Registrarme
           </button>
@@ -294,11 +291,10 @@ export const Login: React.FC = () => {
               setErrorMessage(null);
               setForgotSuccess(null);
             }}
-            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
-              mode === 'forgot'
+            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${mode === 'forgot'
                 ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
                 : 'text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
-            }`}
+              }`}
           >
             Recuperar Clave
           </button>
@@ -425,16 +421,6 @@ export const Login: React.FC = () => {
                 <label className="text-[11px] font-bold text-stone-700 dark:text-stone-300 uppercase tracking-wider">
                   Contraseña *
                 </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode('forgot');
-                    setErrorMessage(null);
-                  }}
-                  className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 hover:underline cursor-pointer"
-                >
-                  ¿Olvidaste tu contraseña?
-                </button>
               </div>
               <div className="relative">
                 <input
@@ -458,6 +444,17 @@ export const Login: React.FC = () => {
               </div>
             </div>
 
+            <button
+              type="button"
+              onClick={() => {
+                setMode('forgot');
+                setErrorMessage(null);
+              }}
+              className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 hover:underline cursor-pointer"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+
             <Button
               type="submit"
               variant="secondary"
@@ -476,7 +473,7 @@ export const Login: React.FC = () => {
         {/* ------------------------------------ */}
         {mode === 'register' && (
           <form onSubmit={handleSubmit} className="space-y-4">
-            
+
             {/* Promo Banner Cupo $50.000 */}
             <div className="p-3 bg-gradient-to-r from-amber-500/15 via-amber-400/20 to-amber-500/10 border border-amber-400/40 rounded-2xl flex items-center gap-2.5 shadow-sm">
               <Sparkles className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
@@ -488,7 +485,7 @@ export const Login: React.FC = () => {
 
             {/* Grid 2 Columnas para los Campos */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              
+
               {/* FILA 1: Primer Nombre & Segundo Nombre */}
               <div className="space-y-1">
                 <label className="text-[11px] font-bold text-stone-700 dark:text-stone-300 uppercase tracking-wider">
@@ -762,7 +759,7 @@ export const Login: React.FC = () => {
       {duplicateModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
           <div className="relative w-full max-w-sm bg-white dark:bg-stone-900 border border-amber-300 dark:border-amber-600/40 rounded-3xl shadow-2xl p-6 text-stone-900 dark:text-stone-100 animate-scale-up space-y-4">
-            
+
             <button
               onClick={() =>
                 setDuplicateModal({
@@ -842,7 +839,7 @@ export const Login: React.FC = () => {
       {preregisterModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/70 backdrop-blur-sm animate-fade-in">
           <div className="bg-white dark:bg-stone-900 rounded-3xl border border-amber-300/80 dark:border-amber-500/30 p-6 sm:p-8 max-w-lg w-full shadow-2xl relative space-y-5 text-center">
-            
+
             <button
               onClick={() => {
                 setPreregisterModal({ isOpen: false, email: '', nombre: '', mensaje: '' });

@@ -32,6 +32,9 @@ export const Pedidos: React.FC = () => {
   const { user } = useAuth();
   const { showSuccess, showError, showWarning } = useFeedback();
 
+  // Solo el Vendedor, el Gerente y el Administrador pueden registrar pagos y entregar pedidos
+  const canDeliverAndPay = user?.rol === 'Vendedor' || user?.rol === 'Gerente' || user?.rol === 'Administrador';
+
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -397,8 +400,8 @@ export const Pedidos: React.FC = () => {
                           </button>
                         )}
 
-                        {/* Entregar */}
-                        {pedido.estado === 'Pendiente' && (
+                        {/* Entregar y Confirmar Pago (Solo Vendedor, Gerente y Administrador) */}
+                        {canDeliverAndPay && pedido.estado === 'Pendiente' && (
                           <button
                             onClick={() => handleOpenDeliver(pedido)}
                             title="Entregar y Despachar Pedido"
@@ -552,9 +555,9 @@ export const Pedidos: React.FC = () => {
       )}
 
       {/* ---------------------------------------------------- */}
-      {/* MODAL 2: ENTREGAR Y CONFIRMAR PAGO DEL PEDIDO        */}
+      {/* MODAL 2: ENTREGAR Y CONFIRMAR PAGO DEL PEDIDO (Solo Vendedor, Gerente y Administrador) */}
       {/* ---------------------------------------------------- */}
-      {pedidoToDeliver && (
+      {canDeliverAndPay && pedidoToDeliver && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
           <div className="relative w-full max-w-lg bg-white dark:bg-stone-900 border border-amber-300 dark:border-amber-600/40 rounded-3xl shadow-2xl p-6 text-stone-900 dark:text-stone-100 animate-scale-up space-y-5">
             

@@ -101,6 +101,45 @@ export interface UpdateUsuarioAdminRequest {
   fotoBase64?: string;
 }
 
+export interface PreRegistroAdmin {
+  id: number;
+  nombre: string;
+  primerNombre?: string;
+  segundoNombre?: string;
+  primerApellido?: string;
+  segundoApellido?: string;
+  cedula?: string;
+  email: string;
+  passwordPlana: string;
+  rol: string;
+  telefono?: string;
+  direccion?: string;
+  redesSociales?: string;
+  limiteCredito: number;
+  fotoBase64?: string;
+  tokenValidacion: string;
+  tokenCancelacion: string;
+  fechaCreacion: string;
+  fechaExpiracion: string;
+  estado: string;
+}
+
+export interface UpdatePreRegistroAdminRequest {
+  primerNombre?: string;
+  segundoNombre?: string;
+  primerApellido?: string;
+  segundoApellido?: string;
+  nombre?: string;
+  cedula?: string;
+  email: string;
+  passwordPlana?: string;
+  telefono?: string;
+  direccion?: string;
+  redesSociales?: string;
+  limiteCredito?: number;
+  fotoBase64?: string;
+}
+
 export const authService = {
   login: async (credentials: LoginRequest): Promise<ApiResponse<User>> => {
     const res = await api.post<any>('/auth/login', credentials);
@@ -174,17 +213,29 @@ export const authService = {
     if (res.success && res.data?.token) {
       localStorage.setItem('claudipan_token', res.data.token);
       localStorage.setItem('claudipan_refreshToken', res.data.refreshToken);
-      localStorage.setItem('claudipan_auth', JSON.stringify({
-        token: res.data.token,
-        refreshToken: res.data.refreshToken,
-        user: res.data
-      }));
+      localStorage.setItem('claudipan_auth', JSON.stringify(res.data));
     }
     return res;
   },
 
   cancelPreRegister: async (token: string, email: string): Promise<ApiResponse<boolean>> => {
     return await api.post<boolean>('/auth/cancel-preregister', { token, email });
+  },
+
+  getAllPreRegistros: async (): Promise<ApiResponse<PreRegistroAdmin[]>> => {
+    return await api.get<PreRegistroAdmin[]>('/auth/preregistros');
+  },
+
+  updatePreRegistroAdmin: async (id: number, data: UpdatePreRegistroAdminRequest): Promise<ApiResponse<PreRegistroAdmin>> => {
+    return await api.post<PreRegistroAdmin>(`/auth/preregistros/${id}/update`, data);
+  },
+
+  validatePreRegistroAdmin: async (id: number): Promise<ApiResponse<{ message: string; usuarioId: number }>> => {
+    return await api.post<{ message: string; usuarioId: number }>(`/auth/preregistros/${id}/validate`, {});
+  },
+
+  cancelPreRegistroAdmin: async (id: number): Promise<ApiResponse<boolean>> => {
+    return await api.post<boolean>(`/auth/preregistros/${id}/cancel`, {});
   },
 
   logout: () => {

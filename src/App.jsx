@@ -24,6 +24,7 @@ import { ResetPassword } from './pages/ResetPassword';
 import { Pedidos } from './pages/Pedidos';
 import { Auditoria } from './pages/Auditoria';
 import { Usuarios } from './pages/Usuarios';
+import { PreRegistrosAdmin } from './pages/PreRegistrosAdmin';
 import { ConfirmarRegistro } from './pages/ConfirmarRegistro';
 import { CancelarRegistro } from './pages/CancelarRegistro';
 import { NotFound } from './pages/NotFound';
@@ -61,6 +62,7 @@ export const App = () => {
             <Route path="/contabilidad" element={<Accounting />} />
             <Route path="/admin/tables" element={<AdminTables />} />
             <Route path="/admin/usuarios" element={<Usuarios />} />
+            <Route path="/admin/preregistros" element={<PreRegistrosAdmin />} />
             <Route path="/admin/auditoria" element={<Auditoria />} />
             <Route path="/confirmar-registro" element={<ConfirmarRegistro />} />
             <Route path="/cancelar-registro" element={<CancelarRegistro />} />

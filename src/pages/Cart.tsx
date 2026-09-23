@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
-  ShoppingBag, Trash2, Plus, Minus, ArrowRight, CheckCircle2, 
-  Ticket as TicketIcon, AlertCircle, CreditCard, DollarSign, 
+import {
+  ShoppingBag, Trash2, Plus, Minus, ArrowRight, CheckCircle2,
+  Ticket as TicketIcon, AlertCircle, CreditCard, DollarSign,
   QrCode, Camera, Check, Store, Truck, Printer, User, LogIn, UserPlus, Clock
 } from 'lucide-react';
 import { useCart } from '../hooks/useCart';
@@ -182,7 +182,7 @@ export const Cart: React.FC = () => {
   if (orderSuccess && createdOrderDetails) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 animate-fade-in print:p-0 print:m-0 print:max-w-none">
-        
+
         {/* Actions bar (hidden during print) */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6 print:hidden">
           <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
@@ -211,7 +211,7 @@ export const Cart: React.FC = () => {
 
         {/* ELEGANT PRINTABLE TICKET CARD */}
         <div className="bg-white dark:bg-stone-900 border-2 border-dashed border-amber-300 dark:border-amber-600/50 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6 text-stone-800 dark:text-stone-200 print:border-solid print:border-black print:text-black print:bg-white print:shadow-none">
-          
+
           {/* Ticket Header */}
           <div className="text-center space-y-1.5 border-b border-stone-200 dark:border-stone-800 pb-5 print:border-black">
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-700 dark:text-amber-400">
@@ -314,8 +314,8 @@ export const Cart: React.FC = () => {
             <div className="flex justify-between text-stone-600 dark:text-stone-400">
               <span>Costo de Envío:</span>
               <span>
-                {createdOrderDetails.costoEnvio > 0 
-                  ? formatCurrency(createdOrderDetails.costoEnvio) 
+                {createdOrderDetails.costoEnvio > 0
+                  ? formatCurrency(createdOrderDetails.costoEnvio)
                   : <strong className="text-emerald-600">¡GRATIS (Mostrador)!</strong>}
               </span>
             </div>
@@ -373,17 +373,17 @@ export const Cart: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-      
+
       {/* Header */}
       <div className="flex items-center justify-between pb-6 border-b border-amber-200/80 dark:border-stone-800">
         <div>
           <h1 className="text-3xl font-heading font-extrabold text-stone-900 dark:text-stone-100">Carrito de Compras</h1>
           <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-            {isAuthenticated 
+            {isAuthenticated
               ? `Comprando como: ${user?.nombre} (${user?.rol})`
-              : isClienteDePaso 
-              ? 'Comprando como: Cliente de Paso (Retiro en Mostrador)'
-              : 'Verifica tus productos y selecciona cómo deseas ordenar.'}
+              : isClienteDePaso
+                ? 'Comprando como: Cliente de Paso (Retiro en Mostrador)'
+                : 'Verifica tus productos y selecciona cómo deseas ordenar.'}
           </p>
         </div>
         <Button variant="ghost" size="sm" onClick={clearCart} className="text-red-500 dark:text-red-400 hover:text-red-600">
@@ -392,10 +392,10 @@ export const Cart: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
+
         {/* Left Column: Product Items & Flow Options */}
         <div className="lg:col-span-8 space-y-6">
-          
+
           {/* List of Products */}
           <div className="space-y-3">
             {items.map(({ product, quantity }) => (
@@ -481,7 +481,7 @@ export const Cart: React.FC = () => {
                   </div>
                   <span className="font-extrabold text-xs uppercase">1. Iniciar Sesión</span>
                   <span className="text-[11px] text-stone-600 dark:text-stone-300 mt-1">
-                    Usa tu cuenta para pagar o utilizar tu cupo de crédito para fiar.
+                    Usa tu cuenta para solicitar tu pedido o utilizar tu cupo de crédito para fiar.
                   </span>
                 </button>
 
@@ -524,7 +524,7 @@ export const Cart: React.FC = () => {
           {/* STEP 2: CHECKOUT OPTIONS (SHOWN ONLY WHEN LOGGED IN OR CLIENTE DE PASO) */}
           {isIdentified && (
             <div className="bg-white dark:bg-stone-900 border border-amber-200/80 dark:border-stone-800 p-6 rounded-3xl space-y-6 shadow-sm animate-fade-in">
-              
+
               {/* Buyer Identification Banner */}
               <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-950 border border-amber-200/80 dark:border-stone-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -541,7 +541,7 @@ export const Cart: React.FC = () => {
                       </span>
                     </div>
                     <p className="text-[11px] text-stone-500 dark:text-stone-400">
-                      {isAuthenticated 
+                      {isAuthenticated
                         ? `${user?.email} • CC: ${user?.cedula || 'N/A'}`
                         : 'Reclama tus productos en el mostrador presentando tu ticket de compra.'}
                     </p>
@@ -567,11 +567,11 @@ export const Cart: React.FC = () => {
                     <span className="text-amber-800 dark:text-amber-300">{formatCurrency(cupoTotal)}</span>
                   </div>
                   <div className="w-full bg-stone-200 dark:bg-stone-800 h-2 rounded-full overflow-hidden flex">
-                    <div 
+                    <div
                       className="bg-red-500 h-full transition-all"
                       style={{ width: `${Math.min(100, (deudaActual / (cupoTotal || 1)) * 100)}%` }}
                     />
-                    <div 
+                    <div
                       className="bg-emerald-500 h-full transition-all"
                       style={{ width: `${Math.max(0, 100 - (deudaActual / (cupoTotal || 1)) * 100)}%` }}
                     />
@@ -594,11 +594,10 @@ export const Cart: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setMetodoEntrega('Mostrador')}
-                    className={`flex items-start gap-3 p-4 rounded-2xl border-2 text-left transition-all ${
-                      metodoEntrega === 'Mostrador'
+                    className={`flex items-start gap-3 p-4 rounded-2xl border-2 text-left transition-all ${metodoEntrega === 'Mostrador'
                         ? 'bg-amber-500/15 border-amber-500 text-amber-950 dark:text-amber-100 shadow-sm'
                         : 'bg-stone-50 dark:bg-stone-800/60 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400'
-                    }`}
+                      }`}
                   >
                     <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0">
                       <Store className="w-5 h-5" />
@@ -616,11 +615,10 @@ export const Cart: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setMetodoEntrega('Domicilio')}
-                    className={`flex items-start gap-3 p-4 rounded-2xl border-2 text-left transition-all ${
-                      metodoEntrega === 'Domicilio'
+                    className={`flex items-start gap-3 p-4 rounded-2xl border-2 text-left transition-all ${metodoEntrega === 'Domicilio'
                         ? 'bg-blue-500/15 border-blue-500 text-blue-950 dark:text-blue-100 shadow-sm'
                         : 'bg-stone-50 dark:bg-stone-800/60 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400'
-                    }`}
+                      }`}
                   >
                     <div className="p-2.5 rounded-xl bg-blue-500/20 text-blue-700 dark:text-blue-300 shrink-0">
                       <Truck className="w-5 h-5" />
@@ -689,11 +687,10 @@ export const Cart: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setTipoPago('Efectivo')}
-                    className={`flex flex-col items-start p-4 rounded-2xl border-2 text-left transition-all ${
-                      tipoPago === 'Efectivo'
+                    className={`flex flex-col items-start p-4 rounded-2xl border-2 text-left transition-all ${tipoPago === 'Efectivo'
                         ? 'bg-emerald-500/15 border-emerald-500 text-emerald-900 dark:text-emerald-200 shadow-sm'
                         : 'bg-stone-50 dark:bg-stone-800/60 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400'
-                    }`}
+                      }`}
                   >
                     <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 mb-2">
                       <DollarSign className="w-5 h-5" />
@@ -708,11 +705,10 @@ export const Cart: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setTipoPago('Nequi')}
-                    className={`flex flex-col items-start p-4 rounded-2xl border-2 text-left transition-all ${
-                      tipoPago === 'Nequi'
+                    className={`flex flex-col items-start p-4 rounded-2xl border-2 text-left transition-all ${tipoPago === 'Nequi'
                         ? 'bg-indigo-500/15 border-indigo-500 text-indigo-900 dark:text-indigo-200 shadow-sm'
                         : 'bg-stone-50 dark:bg-stone-800/60 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400'
-                    }`}
+                      }`}
                   >
                     <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 mb-2">
                       <QrCode className="w-5 h-5" />
@@ -728,24 +724,23 @@ export const Cart: React.FC = () => {
                     type="button"
                     disabled={!canUseCredit}
                     onClick={() => setTipoPago('Credito_Fiado')}
-                    className={`flex flex-col items-start p-4 rounded-2xl border-2 text-left transition-all relative ${
-                      tipoPago === 'Credito_Fiado'
+                    className={`flex flex-col items-start p-4 rounded-2xl border-2 text-left transition-all relative ${tipoPago === 'Credito_Fiado'
                         ? 'bg-amber-500/20 border-amber-500 text-amber-900 dark:text-amber-200 shadow-sm'
                         : 'bg-stone-50 dark:bg-stone-800/60 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400'
-                    } ${!canUseCredit ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      } ${!canUseCredit ? 'opacity-40 cursor-not-allowed' : ''}`}
                   >
                     <div className="p-2 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 mb-2">
                       <CreditCard className="w-5 h-5" />
                     </div>
                     <span className="text-xs font-extrabold uppercase">3. A Crédito (Fiado)</span>
                     <span className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
-                      {isClienteDePaso 
+                      {isClienteDePaso
                         ? 'No permitido para Clientes de Paso.'
-                        : !isRegisteredCustomer 
-                        ? 'Requiere cuenta de cliente.'
-                        : cupoDisponible < finalTotal
-                        ? 'Cupo de crédito insuficiente.'
-                        : 'Cargar a tu cupo disponible.'}
+                        : !isRegisteredCustomer
+                          ? 'Requiere cuenta de cliente.'
+                          : cupoDisponible < finalTotal
+                            ? 'Cupo de crédito insuficiente.'
+                            : 'Cargar a tu cupo disponible.'}
                     </span>
                   </button>
                 </div>
@@ -897,7 +892,7 @@ export const Cart: React.FC = () => {
 
           {/* Total Amount */}
           <div className="flex items-center justify-between">
-            <span className="text-sm font-bold text-stone-800 dark:text-stone-200">Total a Pagar</span>
+            <span className="text-sm font-bold text-stone-800 dark:text-stone-200">Total del Pedido</span>
             <span className="text-2xl font-heading font-extrabold text-amber-700 dark:text-amber-400">
               {formatCurrency(finalTotal)}
             </span>
@@ -910,7 +905,11 @@ export const Cart: React.FC = () => {
             </div>
           )}
 
-          {/* BUTTON: PAGAR (Enabled only when user is identified) */}
+          <p className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20 text-center leading-relaxed">
+            ℹ️ Tu pedido se generará en estado <strong>Pendiente</strong>. El pago y despacho es verificado y registrado exclusivamente en caja por el <strong>Vendedor</strong>, <strong>Gerente</strong> o <strong>Administrador</strong>.
+          </p>
+
+          {/* BUTTON: CONFIRMAR PEDIDO (Enabled only when user is identified) */}
           {isIdentified ? (
             <Button
               variant="success"
@@ -920,7 +919,7 @@ export const Cart: React.FC = () => {
               onClick={handleCheckout}
               rightIcon={<ArrowRight className="w-5 h-5" />}
             >
-              Pagar {formatCurrency(finalTotal)}
+              Confirmar Pedido por: {formatCurrency(finalTotal)}
             </Button>
           ) : (
             <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-stone-800 border border-amber-200 dark:border-stone-700 text-center space-y-1">
@@ -928,7 +927,7 @@ export const Cart: React.FC = () => {
                 Selecciona una opción a la izquierda
               </p>
               <p className="text-[11px] text-stone-500">
-                Inicia sesión, regístrate o continúa como Cliente de Paso para habilitar el botón de pago.
+                Inicia sesión, regístrate o continúa como Cliente de Paso para habilitar la confirmación del pedido.
               </p>
             </div>
           )}

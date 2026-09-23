@@ -7,6 +7,7 @@ export interface AuthContextType {
   isLoading: boolean;
   login: (credentials: LoginRequest) => Promise<{ success: boolean; message?: string }>;
   register: (data: RegisterRequest) => Promise<{ success: boolean; message?: string }>;
+  confirmPreRegister: (token: string, email: string) => Promise<{ success: boolean; message?: string; data?: User }>;
   logout: () => void;
   updateProfile: (data: UpdateProfileRequest) => Promise<{ success: boolean; message?: string }>;
   refreshProfile: () => Promise<void>;
@@ -80,6 +81,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const confirmPreRegister = async (token: string, email: string) => {
+    setIsLoading(true);
+    try {
+      const res = await authService.confirmPreRegister(token, email);
+      if (res.success && res.data) {
+        setUser(res.data);
+        return { success: true, message: res.message, data: res.data };
+      }
+      return { success: false, message: res.message || 'Error al validar prerregistro' };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const updateProfile = async (data: UpdateProfileRequest) => {
     setIsLoading(true);
     try {
@@ -121,6 +136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         register,
+        confirmPreRegister,
         logout,
         updateProfile,
         refreshProfile,

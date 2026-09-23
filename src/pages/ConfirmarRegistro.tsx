@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { authService, User } from '../services/authService';
+import { User } from '../services/authService';
+import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
 import { CheckCircle2, AlertCircle, ChefHat, Sparkles, Store, LayoutDashboard, ArrowRight } from 'lucide-react';
 
@@ -8,36 +9,42 @@ export const ConfirmarRegistro: React.FC = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const email = searchParams.get('email');
+  const { confirmPreRegister } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const hasRequestedRef = useRef(false);
+
+  const executeConfirm = async () => {
+    if (!token || !email) {
+      setErrorMessage('El enlace no contiene el token o el correo de validación requerido.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setErrorMessage(null);
+      const res = await confirmPreRegister(token, email);
+      if (res.success && res.data) {
+        setSuccess(true);
+        setUser(res.data);
+      } else {
+        setErrorMessage(res.message || 'No se pudo validar el prerregistro.');
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Error de conexión con el servidor.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const handleConfirm = async () => {
-      if (!token || !email) {
-        setErrorMessage('El enlace no contiene el token o el correo de validación requerido.');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const res = await authService.confirmPreRegister(token, email);
-        if (res.success && res.data) {
-          setSuccess(true);
-          setUser(res.data);
-        } else {
-          setErrorMessage(res.message || 'No se pudo validar el prerregistro.');
-        }
-      } catch (err: any) {
-        setErrorMessage(err.message || 'Error de conexión con el servidor.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    handleConfirm();
+    if (hasRequestedRef.current) return;
+    hasRequestedRef.current = true;
+    executeConfirm();
   }, [token, email]);
 
   return (

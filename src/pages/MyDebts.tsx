@@ -17,6 +17,10 @@ import { LoadingModal } from '../components/ui/LoadingModal';
 export const MyDebts: React.FC = () => {
   const { user, refreshProfile } = useAuth();
   const { showSuccess, showError, showWarning } = useFeedback();
+
+  // Solo el Vendedor, el Gerente y el Administrador pueden registrar abonos o pagos
+  const canAbonar = user?.rol === 'Vendedor' || user?.rol === 'Gerente' || user?.rol === 'Administrador';
+
   const [resumen, setResumen] = useState<MisDeudasResumen | null>(null);
   const [transacciones, setTransacciones] = useState<TransaccionDeuda[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -186,18 +190,31 @@ export const MyDebts: React.FC = () => {
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-amber-600' : ''}`} />
               Refrescar
             </button>
-            <button
-              onClick={() => {
-                setAbonoMonto(deudaActual > 0 ? deudaActual : 10000);
-                setIsAbonoModalOpen(true);
-              }}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-amber-800 hover:bg-amber-700 text-white text-xs font-extrabold shadow-lg shadow-amber-800/20 transition-all cursor-pointer"
-            >
-              <PlusCircle className="w-4 h-4" />
-              Abonar a Mi Deuda
-            </button>
+            {canAbonar && (
+              <button
+                onClick={() => {
+                  setAbonoMonto(deudaActual > 0 ? deudaActual : 10000);
+                  setIsAbonoModalOpen(true);
+                }}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-amber-800 hover:bg-amber-700 text-white text-xs font-extrabold shadow-lg shadow-amber-800/20 transition-all cursor-pointer"
+              >
+                <PlusCircle className="w-4 h-4" />
+                Abonar a Mi Deuda
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Mensaje informativo para Clientes (no pueden abonar ni pagar directamente) */}
+        {!canAbonar && (
+          <div className="flex items-center gap-3 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-stone-800 dark:text-stone-200 text-xs shadow-sm">
+            <ShieldCheck className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+            <div>
+              <span className="font-extrabold text-amber-900 dark:text-amber-300">Gestión de Abonos y Pagos: </span>
+              Los abonos a tu saldo de fiado y pagos de pedidos deben registrarse directamente en caja a través del <strong>Vendedor</strong>, <strong>Gerente</strong> o <strong>Administrador</strong>. Al cancelar tu saldo pendiente en mostrador, tu cupo disponible se restaurará de inmediato.
+            </div>
+          </div>
+        )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -564,7 +581,7 @@ export const MyDebts: React.FC = () => {
                   </Button>
                 </form>
 
-                {(user?.deudaActual || 0) > 0 && (
+                {canAbonar && (user?.deudaActual || 0) > 0 && (
                   <button
                     onClick={() => {
                       setAbonoMonto(user?.deudaActual || 0);
@@ -779,8 +796,8 @@ export const MyDebts: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL: REALIZAR ABONO */}
-      {isAbonoModalOpen && (
+      {/* MODAL: REALIZAR ABONO (Solo Vendedor, Gerente y Administrador) */}
+      {canAbonar && isAbonoModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-white dark:bg-stone-900 w-full max-w-lg rounded-3xl border border-amber-200 dark:border-stone-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             

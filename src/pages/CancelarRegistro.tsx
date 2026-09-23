@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { Button } from '../components/ui/Button';
@@ -12,30 +12,35 @@ export const CancelarRegistro: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const hasRequestedRef = useRef(false);
+
+  const executeCancel = async () => {
+    if (!token || !email) {
+      setErrorMessage('El enlace no contiene el token o el correo de cancelación requerido.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setErrorMessage(null);
+      const res = await authService.cancelPreRegister(token, email);
+      if (res.success) {
+        setSuccess(true);
+      } else {
+        setErrorMessage(res.message || 'No se pudo cancelar el prerregistro.');
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Error de conexión con el servidor.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const handleCancel = async () => {
-      if (!token || !email) {
-        setErrorMessage('El enlace no contiene el token o el correo de cancelación requerido.');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const res = await authService.cancelPreRegister(token, email);
-        if (res.success) {
-          setSuccess(true);
-        } else {
-          setErrorMessage(res.message || 'No se pudo cancelar el prerregistro.');
-        }
-      } catch (err: any) {
-        setErrorMessage(err.message || 'Error de conexión con el servidor.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    handleCancel();
+    if (hasRequestedRef.current) return;
+    hasRequestedRef.current = true;
+    executeCancel();
   }, [token, email]);
 
   return (

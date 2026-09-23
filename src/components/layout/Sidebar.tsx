@@ -5,7 +5,7 @@ import {
   CreditCard, DollarSign, Settings, Flame, Truck,
   Receipt, Trash2, ShoppingCart, Briefcase, ChevronRight, Package,
   ChevronLeft, PanelLeftClose, PanelLeftOpen, LayoutDashboard, ShieldCheck,
-  Users
+  Users, UserCheck
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -61,6 +61,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           icon: <Users className="w-5 h-5" />,
           colorClass: 'text-blue-600 dark:text-blue-400 bg-blue-500/10 group-hover:bg-blue-500/20',
           activeClass: 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
+        },
+        {
+          to: '/admin/preregistros',
+          label: 'PreRegistros',
+          sublabel: 'Validación y Aprobación',
+          icon: <UserCheck className="w-5 h-5" />,
+          colorClass: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 group-hover:bg-emerald-500/20',
+          activeClass: 'bg-emerald-600 text-white shadow-md shadow-emerald-600/25'
         },
         {
           to: '/admin/auditoria',
@@ -146,6 +154,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           icon: <Users className="w-5 h-5" />,
           colorClass: 'text-blue-600 dark:text-blue-400 bg-blue-500/10 group-hover:bg-blue-500/20',
           activeClass: 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
+        },
+        {
+          to: '/admin/preregistros',
+          label: 'PreRegistros',
+          sublabel: 'Validación y Aprobación',
+          icon: <UserCheck className="w-5 h-5" />,
+          colorClass: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 group-hover:bg-emerald-500/20',
+          activeClass: 'bg-emerald-600 text-white shadow-md shadow-emerald-600/25'
         },
         {
           to: '/contabilidad',
