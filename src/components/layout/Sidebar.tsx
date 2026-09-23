@@ -4,7 +4,8 @@ import {
   Home, Store, ShoppingBag, X,
   CreditCard, DollarSign, Settings, Flame, Truck,
   Receipt, Trash2, ShoppingCart, Briefcase, ChevronRight, Package,
-  ChevronLeft, PanelLeftClose, PanelLeftOpen, LayoutDashboard, ShieldCheck
+  ChevronLeft, PanelLeftClose, PanelLeftOpen, LayoutDashboard, ShieldCheck,
+  Users
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -48,10 +49,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         {
           to: '/admin/tables',
           label: 'Administración de Maestros',
-          sublabel: 'Productos, Categorías, Usuarios',
+          sublabel: 'Productos y Categorías',
           icon: <Settings className="w-5 h-5" />,
           colorClass: 'text-purple-600 dark:text-purple-400 bg-purple-500/10 group-hover:bg-purple-500/20',
           activeClass: 'bg-purple-600 text-white shadow-md shadow-purple-600/25'
+        },
+        {
+          to: '/admin/usuarios',
+          label: 'Gestión de Usuarios',
+          sublabel: 'Cuentas, Roles y Cupos',
+          icon: <Users className="w-5 h-5" />,
+          colorClass: 'text-blue-600 dark:text-blue-400 bg-blue-500/10 group-hover:bg-blue-500/20',
+          activeClass: 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
         },
         {
           to: '/admin/auditoria',
@@ -125,10 +134,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         {
           to: '/admin/tables',
           label: 'Administración de Maestros',
-          sublabel: 'Productos, Categorías, Usuarios',
+          sublabel: 'Productos y Categorías',
           icon: <Settings className="w-5 h-5" />,
           colorClass: 'text-purple-600 dark:text-purple-400 bg-purple-500/10 group-hover:bg-purple-500/20',
           activeClass: 'bg-purple-600 text-white shadow-md shadow-purple-600/25'
+        },
+        {
+          to: '/admin/usuarios',
+          label: 'Gestión de Usuarios',
+          sublabel: 'Cuentas, Roles y Cupos',
+          icon: <Users className="w-5 h-5" />,
+          colorClass: 'text-blue-600 dark:text-blue-400 bg-blue-500/10 group-hover:bg-blue-500/20',
+          activeClass: 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
         },
         {
           to: '/contabilidad',
