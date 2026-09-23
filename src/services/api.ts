@@ -79,6 +79,14 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       };
     }
 
+    if (Array.isArray(json)) {
+      return { success: true, data: json as unknown as T };
+    }
+
+    if (json && typeof json === 'object' && !('success' in json)) {
+      return { success: true, data: json as unknown as T };
+    }
+
     return json || { success: true, data: undefined };
   } catch (error: any) {
     return {

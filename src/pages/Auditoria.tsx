@@ -35,17 +35,21 @@ export const Auditoria: React.FC = () => {
   const fetchAuditoria = async () => {
     setLoading(true);
     try {
-      const res = await auditoriaService.getAll({
+      const res: any = await auditoriaService.getAll({
         tabla: selectedTabla || undefined,
         accion: selectedAccion || undefined,
         formulario: selectedFormulario || undefined,
         busqueda: searchTerm || undefined,
       });
 
-      if (res.success && res.data) {
+      if (Array.isArray(res)) {
+        setRegistros(res);
+      } else if (res?.data && Array.isArray(res.data)) {
+        setRegistros(res.data);
+      } else if (res?.success && res.data) {
         setRegistros(res.data);
       } else {
-        showError(res.message || 'Error al cargar registros de auditoría');
+        showError(res?.message || 'Error al cargar registros de auditoría');
       }
     } catch (err: any) {
       showError(err?.message || 'Error de conexión');
