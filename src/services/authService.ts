@@ -165,6 +165,28 @@ export const authService = {
     return await api.post<boolean>('/auth/reset-password', { token, email });
   },
 
+  preRegister: async (data: RegisterRequest): Promise<ApiResponse<{ email: string; nombre: string; mensaje: string }>> => {
+    return await api.post<{ email: string; nombre: string; mensaje: string }>('/auth/preregister', data);
+  },
+
+  confirmPreRegister: async (token: string, email: string): Promise<ApiResponse<User>> => {
+    const res = await api.post<any>('/auth/confirm-preregister', { token, email });
+    if (res.success && res.data?.token) {
+      localStorage.setItem('claudipan_token', res.data.token);
+      localStorage.setItem('claudipan_refreshToken', res.data.refreshToken);
+      localStorage.setItem('claudipan_auth', JSON.stringify({
+        token: res.data.token,
+        refreshToken: res.data.refreshToken,
+        user: res.data
+      }));
+    }
+    return res;
+  },
+
+  cancelPreRegister: async (token: string, email: string): Promise<ApiResponse<boolean>> => {
+    return await api.post<boolean>('/auth/cancel-preregister', { token, email });
+  },
+
   logout: () => {
     localStorage.removeItem('claudipan_token');
     localStorage.removeItem('claudipan_refreshToken');

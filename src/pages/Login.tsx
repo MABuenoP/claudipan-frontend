@@ -68,6 +68,20 @@ export const Login: React.FC = () => {
     fieldLabel: ''
   });
 
+  // Pre-registration Success Modal State
+  const [preregisterModal, setPreregisterModal] = useState<{
+    isOpen: boolean;
+    email: string;
+    nombre: string;
+    mensaje: string;
+  }>({
+    isOpen: false,
+    email: '',
+    nombre: '',
+    mensaje: ''
+  });
+  const [isSubmittingRegister, setIsSubmittingRegister] = useState(false);
+
   const { login, register, isLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -140,25 +154,38 @@ export const Login: React.FC = () => {
         .filter(Boolean)
         .join(' ');
 
-      const res = await register({
-        primerNombre: primerNombre.trim(),
-        segundoNombre: segundoNombre.trim() || undefined,
-        primerApellido: primerApellido.trim(),
-        segundoApellido: segundoApellido.trim() || undefined,
-        nombre: nombreCompleto,
-        email: email.trim(),
-        password,
-        telefono: telefono.trim() || undefined,
-        direccion: direccion.trim() || undefined,
-        cedula: documentoIdentidad.trim() || undefined,
-        documentoIdentidad: documentoIdentidad.trim() || undefined,
-        redesSociales: redesSociales.trim() || undefined,
-        limiteCredito: 50000 // Todo usuario nuevo entra con cupo fijo de $50.000 COP
-      });
-      if (res.success) {
-        navigate('/dashboard');
-      } else {
-        setErrorMessage(res.message || 'Error en el registro');
+      setIsSubmittingRegister(true);
+      try {
+        const res = await authService.preRegister({
+          primerNombre: primerNombre.trim(),
+          segundoNombre: segundoNombre.trim() || undefined,
+          primerApellido: primerApellido.trim(),
+          segundoApellido: segundoApellido.trim() || undefined,
+          nombre: nombreCompleto,
+          email: email.trim(),
+          password,
+          telefono: telefono.trim() || undefined,
+          direccion: direccion.trim() || undefined,
+          cedula: documentoIdentidad.trim() || undefined,
+          documentoIdentidad: documentoIdentidad.trim() || undefined,
+          redesSociales: redesSociales.trim() || undefined,
+          limiteCredito: 50000
+        });
+
+        if (res.success && res.data) {
+          setPreregisterModal({
+            isOpen: true,
+            email: res.data.email,
+            nombre: res.data.nombre || nombreCompleto,
+            mensaje: res.data.mensaje
+          });
+        } else {
+          setErrorMessage(res.message || 'Error en el prerregistro');
+        }
+      } catch (err: any) {
+        setErrorMessage(err.message || 'Error al conectar con el servidor');
+      } finally {
+        setIsSubmittingRegister(false);
       }
     } else if (mode === 'login') {
       const res = await login({ email: email.trim(), password });
@@ -719,10 +746,10 @@ export const Login: React.FC = () => {
               variant="secondary"
               size="lg"
               className="w-full mt-4 cursor-pointer shadow-lg shadow-amber-600/20"
-              isLoading={isLoading}
+              isLoading={isLoading || isSubmittingRegister}
               rightIcon={<ArrowRight className="w-4 h-4" />}
             >
-              Registrarme
+              {isSubmittingRegister ? 'Enviando Prerregistro...' : 'Registrarme'}
             </Button>
           </form>
         )}
@@ -804,6 +831,75 @@ export const Login: React.FC = () => {
                 className="w-full cursor-pointer text-stone-500 hover:text-stone-800 dark:hover:text-stone-200"
               >
                 Cancelar
+              </Button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Éxito de Prerregistro - Correo Enviado */}
+      {preregisterModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/70 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-stone-900 rounded-3xl border border-amber-300/80 dark:border-amber-500/30 p-6 sm:p-8 max-w-lg w-full shadow-2xl relative space-y-5 text-center">
+            
+            <button
+              onClick={() => {
+                setPreregisterModal({ isOpen: false, email: '', nombre: '', mensaje: '' });
+                setMode('login');
+              }}
+              className="absolute top-4 right-4 p-1.5 rounded-full text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Icon Header */}
+            <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-400 border border-amber-300/60 dark:border-amber-700/50 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/20">
+              <Mail className="w-8 h-8 animate-pulse" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300/60 dark:border-amber-700/50">
+                <Sparkles className="w-3.5 h-3.5" />
+                ¡Prerregistro Exitoso!
+              </span>
+              <h3 className="text-xl sm:text-2xl font-black font-heading text-stone-900 dark:text-stone-100">
+                Revisa tu Correo Electrónico
+              </h3>
+              <p className="text-sm text-stone-600 dark:text-stone-300 leading-relaxed">
+                Hemos enviado un correo a <strong className="text-amber-700 dark:text-amber-400">{preregisterModal.email}</strong> con todos los datos que registraste, incluida tu contraseña creada.
+              </p>
+            </div>
+
+            {/* Informative Step Box */}
+            <div className="bg-amber-50/80 dark:bg-stone-800/60 border border-amber-200/80 dark:border-amber-500/20 rounded-2xl p-4 text-xs sm:text-sm text-stone-700 dark:text-stone-300 text-left space-y-2">
+              <div className="flex items-start gap-2">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold flex items-center justify-center shrink-0 text-xs">1</span>
+                <span>Abre tu bandeja de entrada o carpeta de spam en <strong>{preregisterModal.email}</strong>.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-bold flex items-center justify-center shrink-0 text-xs">2</span>
+                <span>Verifica tus datos y haz clic en el botón <strong>"Validar y Confirmar Registro"</strong> para activar tu cuenta.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="w-5 h-5 rounded-full bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 font-bold flex items-center justify-center shrink-0 text-xs">3</span>
+                <span>Al confirmar, tu contraseña se guardará encriptada con estándar de seguridad <strong>MD5</strong>.</span>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <Button
+                type="button"
+                variant="primary"
+                size="lg"
+                onClick={() => {
+                  setPreregisterModal({ isOpen: false, email: '', nombre: '', mensaje: '' });
+                  setMode('login');
+                }}
+                className="w-full cursor-pointer shadow-lg shadow-amber-600/30 !py-3"
+                rightIcon={<ArrowRight className="w-4 h-4" />}
+              >
+                Entendido, Ir a Iniciar Sesión
               </Button>
             </div>
 
