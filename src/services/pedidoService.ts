@@ -107,7 +107,7 @@ export const pedidoService = {
   },
 
   updateEstado: async (id: number, nuevoEstado: string): Promise<ApiResponse<Pedido>> => {
-    return await api.patch<Pedido>(`/pedidos/${id}/estado`, nuevoEstado);
+    return await api.post<Pedido>(`/pedidos/${id}/estado`, nuevoEstado);
   },
 
   entregar: async (id: number, data: { tipoPago: string; referenciaPago?: string; observaciones?: string }): Promise<ApiResponse<Pedido>> => {

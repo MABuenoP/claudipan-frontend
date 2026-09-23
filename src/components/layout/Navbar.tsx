@@ -56,7 +56,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
             <div className="flex items-center gap-3">
               <button
                 onClick={onToggleSidebar}
-                className="p-2 text-stone-600 dark:text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-white dark:hover:bg-stone-900 rounded-xl transition-colors shadow-sm"
+                className="lg:hidden p-2 text-stone-600 dark:text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-white dark:hover:bg-stone-900 rounded-xl transition-colors shadow-sm cursor-pointer"
                 aria-label="Abrir menú de trabajo"
                 title="Abrir menú de trabajo"
               >

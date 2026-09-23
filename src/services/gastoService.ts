@@ -34,7 +34,7 @@ export const gastoService = {
   },
 
   update: async (id: number, data: Partial<Gasto>): Promise<ApiResponse<Gasto>> => {
-    return await api.put<Gasto>(`/gastos/${id}`, data);
+    return await api.post<Gasto>(`/gastos/${id}`, data);
   },
 
   delete: async (id: number): Promise<ApiResponse<boolean>> => {

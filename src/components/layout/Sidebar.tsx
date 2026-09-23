@@ -47,7 +47,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       return [
         {
           to: '/admin/tables',
-          label: 'CRUD Tablas del Sistema',
+          label: 'Administración de Maestros',
           sublabel: 'Productos, Categorías, Usuarios',
           icon: <Settings className="w-5 h-5" />,
           colorClass: 'text-purple-600 dark:text-purple-400 bg-purple-500/10 group-hover:bg-purple-500/20',
@@ -122,6 +122,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
     if (role === 'Gerente') {
       return [
+        {
+          to: '/admin/tables',
+          label: 'Administración de Maestros',
+          sublabel: 'Productos, Categorías, Usuarios',
+          icon: <Settings className="w-5 h-5" />,
+          colorClass: 'text-purple-600 dark:text-purple-400 bg-purple-500/10 group-hover:bg-purple-500/20',
+          activeClass: 'bg-purple-600 text-white shadow-md shadow-purple-600/25'
+        },
         {
           to: '/contabilidad',
           label: 'Contabilidad P&G',

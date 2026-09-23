@@ -28,7 +28,7 @@ export const proveedorService = {
   },
 
   update: async (id: number, data: Partial<Proveedor>): Promise<ApiResponse<Proveedor>> => {
-    return await api.put<Proveedor>(`/proveedores/${id}`, data);
+    return await api.post<Proveedor>(`/proveedores/${id}`, data);
   },
 
   delete: async (id: number): Promise<ApiResponse<boolean>> => {
