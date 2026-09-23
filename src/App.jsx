@@ -23,6 +23,7 @@ import { AdminTables } from './pages/AdminTables';
 import { ResetPassword } from './pages/ResetPassword';
 import { Pedidos } from './pages/Pedidos';
 import { Auditoria } from './pages/Auditoria';
+import { NotFound } from './pages/NotFound';
 
 export const App = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -57,6 +58,7 @@ export const App = () => {
             <Route path="/contabilidad" element={<Accounting />} />
             <Route path="/admin/tables" element={<AdminTables />} />
             <Route path="/admin/auditoria" element={<Auditoria />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
       </div>
