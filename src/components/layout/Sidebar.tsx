@@ -4,7 +4,7 @@ import {
   Home, Store, ShoppingBag, X,
   CreditCard, DollarSign, Settings, Flame, Truck,
   Receipt, Trash2, ShoppingCart, Briefcase, ChevronRight, Package,
-  ChevronLeft, PanelLeftClose, PanelLeftOpen, LayoutDashboard
+  ChevronLeft, PanelLeftClose, PanelLeftOpen, LayoutDashboard, ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -47,11 +47,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       return [
         {
           to: '/admin/tables',
-          label: 'CRUD Tablas & Auditoría',
+          label: 'CRUD Tablas del Sistema',
           sublabel: 'Productos, Categorías, Usuarios',
           icon: <Settings className="w-5 h-5" />,
           colorClass: 'text-purple-600 dark:text-purple-400 bg-purple-500/10 group-hover:bg-purple-500/20',
           activeClass: 'bg-purple-600 text-white shadow-md shadow-purple-600/25'
+        },
+        {
+          to: '/admin/auditoria',
+          label: 'Bitácora de Auditoría',
+          sublabel: 'Accesos (IPs), Formularios y Tablas',
+          icon: <ShieldCheck className="w-5 h-5" />,
+          colorClass: 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 group-hover:bg-indigo-500/20',
+          activeClass: 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
         },
         {
           to: '/produccion',
@@ -60,6 +68,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           icon: <Flame className="w-5 h-5" />,
           colorClass: 'text-amber-600 dark:text-amber-400 bg-amber-500/10 group-hover:bg-amber-500/20',
           activeClass: 'bg-amber-600 text-white shadow-md shadow-amber-600/25'
+        },
+        {
+          to: '/pedidos',
+          label: 'Pedidos & Despachos',
+          sublabel: 'Tickets, verificación y entregas',
+          icon: <ShoppingBag className="w-5 h-5" />,
+          colorClass: 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 group-hover:bg-indigo-500/20',
+          activeClass: 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
         },
         {
           to: '/pos',
@@ -121,6 +137,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           icon: <Flame className="w-5 h-5" />,
           colorClass: 'text-amber-600 dark:text-amber-400 bg-amber-500/10 group-hover:bg-amber-500/20',
           activeClass: 'bg-amber-600 text-white shadow-md shadow-amber-600/25'
+        },
+        {
+          to: '/pedidos',
+          label: 'Pedidos & Despachos',
+          sublabel: 'Control de tickets y entregas',
+          icon: <ShoppingBag className="w-5 h-5" />,
+          colorClass: 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 group-hover:bg-indigo-500/20',
+          activeClass: 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
         },
         {
           to: '/pos',
@@ -217,6 +241,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
     if (role === 'Vendedor') {
       return [
+        {
+          to: '/pedidos',
+          label: 'Pedidos & Entregas',
+          sublabel: 'Validar tickets y despachar',
+          icon: <ShoppingBag className="w-5 h-5" />,
+          colorClass: 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 group-hover:bg-indigo-500/20',
+          activeClass: 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
+        },
         {
           to: '/pos',
           label: 'Caja Rápida',

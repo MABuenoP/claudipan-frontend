@@ -23,9 +23,12 @@ export interface Pedido {
   fechaEntrega?: string;
   total: number;
   montoFiado: number;
+  costoEnvio?: number;
+  metodoEntrega?: string;
+  codigoTicket?: string;
   estado: string;
   tipoPago: 'Efectivo' | 'Nequi' | 'Transferencia' | 'Tarjeta' | 'Credito_Fiado' | string;
-  estadoPago: 'Pagado' | 'Pendiente_Credito' | string;
+  estadoPago: 'Pagado' | 'Pendiente_Credito' | 'Pendiente_Pago' | string;
   comprobanteBase64?: string;
   referenciaPago?: string;
   direccionEntrega?: string;
@@ -52,10 +55,14 @@ export interface TransaccionDeuda {
 export interface PedidoCreateRequest {
   usuarioId?: number;
   esInvitado?: boolean;
+  esClienteDePaso?: boolean;
   invitadoNombre?: string;
   invitadoEmail?: string;
   invitadoTelefono?: string;
   invitadoCedula?: string;
+  metodoEntrega?: string;
+  costoEnvio?: number;
+  codigoTicket?: string;
   fechaEntrega?: string;
   direccionEntrega?: string;
   observaciones?: string;
@@ -101,6 +108,14 @@ export const pedidoService = {
 
   updateEstado: async (id: number, nuevoEstado: string): Promise<ApiResponse<Pedido>> => {
     return await api.patch<Pedido>(`/pedidos/${id}/estado`, nuevoEstado);
+  },
+
+  entregar: async (id: number, data: { tipoPago: string; referenciaPago?: string; observaciones?: string }): Promise<ApiResponse<Pedido>> => {
+    return await api.post<Pedido>(`/pedidos/${id}/entregar`, data);
+  },
+
+  updatePedido: async (id: number, data: Partial<PedidoCreateRequest>): Promise<ApiResponse<Pedido>> => {
+    return await api.post<Pedido>(`/pedidos/${id}/editar`, data);
   },
 
   cancelar: async (id: number): Promise<ApiResponse<boolean>> => {

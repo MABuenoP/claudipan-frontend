@@ -32,12 +32,35 @@ function getAuthHeader(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+function getFormOriginHeader(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+  const path = window.location.pathname.toLowerCase();
+  let formName = 'Web App';
+  if (path.includes('/admin/tables')) formName = 'Administración de Tablas (CRUD)';
+  else if (path.includes('/admin/auditoria')) formName = 'Bitácora de Auditoría';
+  else if (path.includes('/login')) formName = 'Formulario de Login / Registro';
+  else if (path.includes('/cart')) formName = 'Carrito de Compras';
+  else if (path.includes('/pedidos')) formName = 'Gestión de Pedidos & Despachos';
+  else if (path.includes('/pos')) formName = 'Caja Rápida POS';
+  else if (path.includes('/produccion')) formName = 'Módulo de Producción';
+  else if (path.includes('/compras')) formName = 'Compras Proveedores';
+  else if (path.includes('/gastos')) formName = 'Servicios & Nómina';
+  else if (path.includes('/bajas')) formName = 'Bajas & Mermas';
+  else if (path.includes('/mis-deudas')) formName = 'Gestión de Deudas & Abonos';
+  else if (path.includes('/catalog')) formName = 'Catálogo de Productos';
+  else if (path.includes('/dashboard')) formName = 'Dashboard Principal';
+  else formName = `Página: ${window.location.pathname}`;
+
+  return { 'X-Form-Origin': formName };
+}
+
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
   try {
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
     const headers = {
       'Content-Type': 'application/json',
       ...getAuthHeader(),
+      ...getFormOriginHeader(),
       ...(options.headers || {}),
     };
 
