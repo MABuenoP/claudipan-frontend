@@ -71,7 +71,7 @@ export const productService = {
   },
 
   update: async (id: number, data: Partial<Product>): Promise<ApiResponse<Product>> => {
-    return await api.put<Product>(`/productos/${id}`, data);
+    return await api.post<Product>(`/productos/${id}`, data);
   },
 
   updateProduct: async (id: number, data: Partial<Product>): Promise<ApiResponse<Product>> => {

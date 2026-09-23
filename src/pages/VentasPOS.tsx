@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Pagination } from '../components/ui/Pagination';
+import { LoadingModal } from '../components/ui/LoadingModal';
 
 export const VentasPOS: React.FC = () => {
   const { user } = useAuth();

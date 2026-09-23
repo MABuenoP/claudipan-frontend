@@ -20,6 +20,7 @@ import { GastosNomina } from './pages/GastosNomina';
 import { BajasMermas } from './pages/BajasMermas';
 import { Accounting } from './pages/Accounting';
 import { AdminTables } from './pages/AdminTables';
+import { ResetPassword } from './pages/ResetPassword';
 
 export const App = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -43,6 +44,7 @@ export const App = () => {
             <Route path="/cart" element={<Cart />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/mis-deudas" element={<MyDebts />} />
             <Route path="/pos" element={<VentasPOS />} />
             <Route path="/produccion" element={<Produccion />} />

@@ -27,7 +27,7 @@ export const insumoService = {
   },
 
   update: async (id: number, data: Partial<Insumo>): Promise<ApiResponse<Insumo>> => {
-    return await api.put<Insumo>(`/insumos/${id}`, data);
+    return await api.post<Insumo>(`/insumos/${id}`, data);
   },
 
   delete: async (id: number): Promise<ApiResponse<boolean>> => {

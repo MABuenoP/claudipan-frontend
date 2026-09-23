@@ -20,6 +20,7 @@ import { Button } from '../components/ui/Button';
 import { Pagination } from '../components/ui/Pagination';
 import { useFeedback } from '../hooks/useFeedback';
 import { exportToExcel } from '../utils/excelExport';
+import { LoadingModal } from '../components/ui/LoadingModal';
 
 export const Produccion: React.FC = () => {
   const { user } = useAuth();

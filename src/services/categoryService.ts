@@ -25,7 +25,11 @@ export const categoryService = {
   },
 
   updateCategory: async (id: number, data: CategoriaCreateRequest): Promise<ApiResponse<Categoria>> => {
-    return await api.put<Categoria, CategoriaCreateRequest>(`/categorias/${id}`, data);
+    return await api.post<Categoria, CategoriaCreateRequest>(`/categorias/${id}`, data);
+  },
+
+  getAll: async (): Promise<ApiResponse<Categoria[]>> => {
+    return await api.get<Categoria[]>('/categorias');
   },
 
   deleteCategory: async (id: number): Promise<ApiResponse<boolean>> => {

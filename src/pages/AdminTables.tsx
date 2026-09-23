@@ -11,6 +11,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useFeedback } from '../hooks/useFeedback';
 import { exportToExcel } from '../utils/excelExport';
 import { Button } from '../components/ui/Button';
+import { LoadingModal } from '../components/ui/LoadingModal';
 
 export const AdminTables: React.FC = () => {
   const { user: currentUser } = useAuth();

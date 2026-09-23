@@ -130,7 +130,7 @@ export const authService = {
   },
 
   updateProfile: async (data: UpdateProfileRequest): Promise<ApiResponse<User>> => {
-    return await api.put<User>('/auth/profile', data);
+    return await api.post<User>('/auth/profile', data);
   },
 
   changePassword: async (data: ChangePasswordRequest): Promise<ApiResponse<boolean>> => {
@@ -146,11 +146,23 @@ export const authService = {
   },
 
   updateUserAdmin: async (id: number, data: UpdateUsuarioAdminRequest): Promise<ApiResponse<UsuarioAdmin>> => {
-    return await api.put<UsuarioAdmin>(`/auth/users/${id}`, data);
+    return await api.post<UsuarioAdmin>(`/auth/users/${id}`, data);
   },
 
   deleteUserAdmin: async (id: number): Promise<ApiResponse<boolean>> => {
     return await api.delete<boolean>(`/auth/users/${id}`);
+  },
+
+  checkField: async (field: 'email' | 'cedula' | 'telefono', value: string): Promise<ApiResponse<{ exists: boolean; message: string }>> => {
+    return await api.post<{ exists: boolean; message: string }>('/auth/check-field', { field, value });
+  },
+
+  forgotPassword: async (email: string): Promise<ApiResponse<boolean>> => {
+    return await api.post<boolean>('/auth/forgot-password', { email });
+  },
+
+  resetPassword: async (token: string, email: string): Promise<ApiResponse<boolean>> => {
+    return await api.post<boolean>('/auth/reset-password', { token, email });
   },
 
   logout: () => {

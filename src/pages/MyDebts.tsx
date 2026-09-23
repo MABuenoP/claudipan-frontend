@@ -12,6 +12,7 @@ import { Pagination } from '../components/ui/Pagination';
 import { formatCurrency } from '../utils/helpers';
 import { Button } from '../components/ui/Button';
 import { useFeedback } from '../hooks/useFeedback';
+import { LoadingModal } from '../components/ui/LoadingModal';
 
 export const MyDebts: React.FC = () => {
   const { user, refreshProfile } = useAuth();

@@ -5,6 +5,7 @@ import { productService, Product } from '../services/productService';
 import { contabilidadService } from '../services/contabilidadService';
 import { ProductCard } from '../components/product/ProductCard';
 import { Button } from '../components/ui/Button';
+import { LoadingModal } from '../components/ui/LoadingModal';
 
 export const Home: React.FC = () => {
   const [topSellers, setTopSellers] = useState<Product[]>([]);

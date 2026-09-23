@@ -9,6 +9,7 @@ import { authService, UsuarioAdmin } from '../services/authService';
 import { Pagination } from '../components/ui/Pagination';
 import { exportToExcel } from '../utils/excelExport';
 import { Button } from '../components/ui/Button';
+import { LoadingModal } from '../components/ui/LoadingModal';
 
 export const Accounting: React.FC = () => {
   const [resumen, setResumen] = useState<ResumenContable | null>(null);

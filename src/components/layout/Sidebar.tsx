@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  Home, Store, ShoppingBag, X, 
-  CreditCard, DollarSign, Settings, Flame, Truck, 
+import {
+  Home, Store, ShoppingBag, X,
+  CreditCard, DollarSign, Settings, Flame, Truck,
   Receipt, Trash2, ShoppingCart, Briefcase, ChevronRight, Package,
-  ChevronLeft, PanelLeftClose, PanelLeftOpen
+  ChevronLeft, PanelLeftClose, PanelLeftOpen, LayoutDashboard
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -63,7 +63,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         },
         {
           to: '/pos',
-          label: 'Terminal POS Mostrador',
+          label: 'Caja Rápida',
           sublabel: 'Venta rápida y facturación',
           icon: <ShoppingCart className="w-5 h-5" />,
           colorClass: 'text-blue-600 dark:text-blue-400 bg-blue-500/10 group-hover:bg-blue-500/20',
@@ -219,7 +219,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       return [
         {
           to: '/pos',
-          label: 'Terminal POS Mostrador',
+          label: 'Caja Rápida',
           sublabel: 'Ventas directas y pedidos',
           icon: <ShoppingCart className="w-5 h-5" />,
           colorClass: 'text-blue-600 dark:text-blue-400 bg-blue-500/10 group-hover:bg-blue-500/20',
@@ -280,7 +280,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   // Content for the Sidebar
   const renderSidebarContent = (isMobile = false, collapsed = false) => (
     <div className="flex flex-col h-full select-none">
-      
+
       {/* Header Info & Collapse Toggle */}
       <div className={`border-b border-amber-200/80 dark:border-stone-800 transition-all duration-300 ${collapsed ? 'p-2' : 'p-3 sm:p-4'}`}>
         {isMobile && (
@@ -312,7 +312,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 <Briefcase className="w-5 h-5 text-amber-600 dark:text-amber-400" />
               </div>
             )}
-            
+
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
               className="hidden lg:flex items-center justify-center p-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 border border-amber-300/60 dark:border-stone-700 transition-all cursor-pointer shadow-sm active:scale-95"
@@ -328,11 +328,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           </div>
         )}
 
-        {/* User Card when Authenticated */}
+        {/* User Card when Authenticated — Link al Dashboard de su rol */}
         {isAuthenticated && user ? (
-          <div className={`bg-gradient-to-br from-amber-500/15 to-amber-600/5 dark:from-stone-900 dark:to-stone-900/60 rounded-2xl border border-amber-300/60 dark:border-stone-800 transition-all ${
-            collapsed ? 'p-1.5 flex flex-col items-center justify-center text-center' : 'p-3'
-          }`}>
+          <Link
+            to="/dashboard"
+            onClick={onClose}
+            title="Ir a mi panel de inicio"
+            className={`block bg-gradient-to-br from-amber-500/15 to-amber-600/5 dark:from-stone-900 dark:to-stone-900/60 rounded-2xl border border-amber-300/60 dark:border-stone-800 transition-all hover:border-amber-500 hover:shadow-md hover:shadow-amber-500/10 cursor-pointer ${collapsed ? 'p-1.5 flex flex-col items-center justify-center text-center' : 'p-3'
+              }`}
+          >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-amber-600 text-white font-black text-sm flex items-center justify-center border-2 border-white dark:border-stone-800 shadow-md shadow-amber-600/20 shrink-0">
                 {user.nombre.charAt(0).toUpperCase()}
@@ -345,6 +349,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                   </span>
                 </div>
               )}
+              {!collapsed && (
+                <LayoutDashboard className="w-4 h-4 text-amber-500/60 shrink-0" />
+              )}
             </div>
 
             {!collapsed && user.rol === 'Cliente' && (
@@ -355,7 +362,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 </span>
               </div>
             )}
-          </div>
+          </Link>
         ) : (
           !collapsed && (
             <div className="p-2.5 bg-amber-100/50 dark:bg-stone-900 rounded-2xl border border-amber-200 dark:border-stone-800 text-center">
@@ -368,7 +375,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
       {/* Navigation Modules Section */}
       <nav className={`flex-1 overflow-y-auto space-y-1.5 transition-all duration-300 ${collapsed ? 'p-2' : 'p-3'}`}>
-        
+
         {/* Module Links */}
         <div className="space-y-1">
           {navItems.map((item) => {
@@ -379,21 +386,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 to={item.to}
                 onClick={onClose}
                 title={collapsed ? `${item.label} (${item.sublabel || ''})` : undefined}
-                className={`group flex items-center rounded-2xl transition-all relative ${
-                  collapsed
-                    ? 'justify-center p-2.5'
-                    : 'justify-between px-3 py-2.5 text-xs font-bold'
-                } ${
-                  active
+                className={`group flex items-center rounded-2xl transition-all relative ${collapsed
+                  ? 'justify-center p-2.5'
+                  : 'justify-between px-3 py-2.5 text-xs font-bold'
+                  } ${active
                     ? item.activeClass
                     : 'text-stone-700 dark:text-stone-300 hover:bg-amber-100/60 dark:hover:bg-stone-800/80'
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   {/* Large eye-catching styled icon container */}
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm shrink-0 ${
-                    active ? 'bg-white/20 text-white border border-white/30' : item.colorClass
-                  }`}>
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm shrink-0 ${active ? 'bg-white/20 text-white border border-white/30' : item.colorClass
+                    }`}>
                     {item.icon}
                   </div>
 
@@ -410,9 +414,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 </div>
 
                 {!collapsed && (
-                  <ChevronRight className={`w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5 ${
-                    active ? 'opacity-90' : 'opacity-30'
-                  }`} />
+                  <ChevronRight className={`w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5 ${active ? 'opacity-90' : 'opacity-30'
+                    }`} />
                 )}
               </Link>
             );
@@ -432,13 +435,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               to="/"
               onClick={onClose}
               title={collapsed ? 'Página Principal' : undefined}
-              className={`group flex items-center rounded-2xl transition-all ${
-                collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2 text-xs font-bold'
-              } ${
-                isActive('/')
+              className={`group flex items-center rounded-2xl transition-all ${collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2 text-xs font-bold'
+                } ${isActive('/')
                   ? 'text-amber-800 dark:text-amber-300 bg-amber-200/70 dark:bg-stone-800 font-black'
                   : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800'
-              }`}
+                }`}
             >
               <div className="w-8 h-8 rounded-xl bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-stone-600 dark:text-stone-400 group-hover:bg-amber-500/20 group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors shrink-0">
                 <Home className="w-4 h-4" />
@@ -450,13 +451,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               to="/cart"
               onClick={onClose}
               title={collapsed ? 'Mi Carrito de Compras' : undefined}
-              className={`group flex items-center rounded-2xl transition-all ${
-                collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2 text-xs font-bold'
-              } ${
-                isActive('/cart')
+              className={`group flex items-center rounded-2xl transition-all ${collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2 text-xs font-bold'
+                } ${isActive('/cart')
                   ? 'text-amber-800 dark:text-amber-300 bg-amber-200/70 dark:bg-stone-800 font-black'
                   : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800'
-              }`}
+                }`}
             >
               <div className="w-8 h-8 rounded-xl bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-stone-600 dark:text-stone-400 group-hover:bg-amber-500/20 group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors shrink-0">
                 <ShoppingBag className="w-4 h-4" />
@@ -487,9 +486,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {/* 1. Desktop Docked Sidebar (Always present on the left when authenticated, collapsible) */}
       {isAuthenticated && (
         <aside
-          className={`hidden lg:flex flex-col shrink-0 bg-[#FFFBEB]/80 dark:bg-stone-950/80 border-r border-amber-200/80 dark:border-amber-500/20 sticky top-20 h-[calc(100vh-5rem)] overflow-hidden backdrop-blur-md transition-all duration-300 shadow-sm ${
-            isCollapsed ? 'w-20' : 'w-64'
-          }`}
+          className={`hidden lg:flex flex-col shrink-0 bg-[#FFFBEB]/80 dark:bg-stone-950/80 border-r border-amber-200/80 dark:border-amber-500/20 sticky top-20 h-[calc(100vh-5rem)] overflow-hidden backdrop-blur-md transition-all duration-300 shadow-sm ${isCollapsed ? 'w-20' : 'w-64'
+            }`}
         >
           {renderSidebarContent(false, isCollapsed)}
         </aside>

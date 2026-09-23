@@ -11,6 +11,7 @@ import { Pagination } from '../components/ui/Pagination';
 import { useAuth } from '../hooks/useAuth';
 import { useFeedback } from '../hooks/useFeedback';
 import { exportToExcel } from '../utils/excelExport';
+import { LoadingModal } from '../components/ui/LoadingModal';
 
 export const GastosNomina: React.FC = () => {
   const { user } = useAuth();

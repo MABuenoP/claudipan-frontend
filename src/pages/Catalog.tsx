@@ -4,6 +4,7 @@ import { productService, Product } from '../services/productService';
 import { ProductCatalog } from '../components/product/ProductCatalog';
 import { Spinner } from '../components/ui/Spinner';
 import { Store, Flame } from 'lucide-react';
+import { LoadingModal } from '../components/ui/LoadingModal';
 
 export const Catalog: React.FC = () => {
   const [searchParams] = useSearchParams();
