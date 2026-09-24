@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { bajaService, BajaProducto } from '../services/bajaService';
 import { productService, Product } from '../services/productService';
 import { formatCurrency } from '../utils/helpers';
-import { 
-  Trash2, Plus, AlertTriangle, RefreshCw, X, 
+import {
+  Trash2, Plus, AlertTriangle, RefreshCw, X,
   DollarSign, PackageX, Calendar, ShieldAlert, CheckCircle2, FileSpreadsheet,
   Search, ChevronDown
 } from 'lucide-react';
@@ -16,14 +16,14 @@ import { LoadingModal } from '../components/ui/LoadingModal';
 
 export const BajasMermas: React.FC = () => {
   const { user } = useAuth();
-  const { showSuccess, showError } = useFeedback();
+  const { showSuccess, showError, showWarning, showConfirm } = useFeedback();
   const userRole = user?.rol || '';
   const canExportExcel = userRole === 'Administrador' || userRole === 'Gerente' || userRole === 'Contador' || userRole === 'Contable';
   const canManage = userRole === 'Administrador' || userRole === 'Gerente' || userRole === 'Contador' || userRole === 'Contable' || userRole === 'Panadero';
   const [bajas, setBajas] = useState<BajaProducto[]>([]);
   const [productos, setProductos] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Search and mobile view states
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,7 +37,15 @@ export const BajasMermas: React.FC = () => {
   const [cantidad, setCantidad] = useState<number>(5);
   const [motivo, setMotivo] = useState<string>('Vencimiento');
   const [observaciones, setObservaciones] = useState('');
+  const [esParaTransformar, setEsParaTransformar] = useState(false);
+  const [kilosTransformacion, setKilosTransformacion] = useState<number>(0.4);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const selectedProd = productos.find(p => p.id === productoId);
+  const esPan = selectedProd ? (
+    selectedProd.nombre.toLowerCase().includes('pan') || 
+    (selectedProd.categoriaNombre?.toLowerCase().includes('pan') ?? false)
+  ) : false;
 
   const fetchData = async () => {
     setLoading(true);
@@ -47,7 +55,12 @@ export const BajasMermas: React.FC = () => {
     ]);
 
     if (resBajas.success && resBajas.data) setBajas(resBajas.data);
-    if (resProd.success && resProd.data) setProductos(resProd.data);
+    if (resProd.success && resProd.data && resProd.data.length > 0) {
+      setProductos(resProd.data);
+      if (!productoId || productoId === 1) {
+        setProductoId(resProd.data[0].id);
+      }
+    }
     setLoading(false);
   };
 
@@ -55,15 +68,54 @@ export const BajasMermas: React.FC = () => {
     fetchData();
   }, []);
 
+  const handleProductoChange = (id: number) => {
+    setProductoId(id);
+    const prod = productos.find(p => p.id === id);
+    const isBread = prod ? (
+      prod.nombre.toLowerCase().includes('pan') || 
+      (prod.categoriaNombre?.toLowerCase().includes('pan') ?? false)
+    ) : false;
+    if (!isBread) {
+      setEsParaTransformar(false);
+      if (motivo === 'Transformacion') setMotivo('Vencimiento');
+    }
+  };
+
+  const handleCantidadChange = (val: number) => {
+    setCantidad(val);
+    setKilosTransformacion(Number((val * 0.08).toFixed(2)));
+  };
+
   const handleCrearBaja = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (cantidad <= 0) {
+      showWarning('La cantidad a registrar debe ser mayor a 0.', 'Cantidad Inválida');
+      return;
+    }
+
+    if (esParaTransformar && !esPan) {
+      showWarning('La opción de transformación a insumos solo está permitida para productos de panadería (panes).', 'Validación de Pan');
+      return;
+    }
+
+    if (selectedProd && cantidad > selectedProd.stock) {
+      const continuar = await showConfirm(
+        `La cantidad a descontar (${cantidad} u.) supera el stock actual en mostrador (${selectedProd.stock} u.). El stock quedará en 0. ¿Desea continuar con el registro?`,
+        'Confirmar Descuento de Inventario'
+      );
+      if (!continuar) return;
+    }
+
     setIsSubmitting(true);
 
     const res = await bajaService.create({
       productoId,
       cantidad,
-      motivo,
-      observaciones
+      motivo: esParaTransformar ? 'Transformacion' : motivo,
+      observaciones,
+      esParaTransformar,
+      kilosTransformacion: esParaTransformar ? kilosTransformacion : undefined
     });
 
     setIsSubmitting(false);
@@ -71,8 +123,12 @@ export const BajasMermas: React.FC = () => {
     if (res.success) {
       setShowModal(false);
       setObservaciones('');
+      setEsParaTransformar(false);
       fetchData();
-      showSuccess('Baja registrada exitosamente. Se descontaron las unidades del inventario y se contabilizó la pérdida en el P&G.', 'Baja Registrada');
+      showSuccess(
+        res.message || 'Baja registrada exitosamente y descontada del inventario.',
+        esParaTransformar ? 'Transformación Exitosa' : 'Baja Registrada'
+      );
     } else {
       showError(res.message || 'Error al registrar la baja', 'Error en Baja');
     }
@@ -95,6 +151,9 @@ export const BajasMermas: React.FC = () => {
 
   const getMotivoBadge = (mot: string) => {
     switch (mot) {
+      case 'Transformacion':
+      case 'Transformación':
+        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30">TRANSFORMACIÓN / INSUMO</span>;
       case 'Vencimiento':
         return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-red-500/20 text-red-800 dark:text-red-300 border border-red-500/30">VENCIMIENTO</span>;
       case 'ProduccionDefectuosa':
@@ -130,7 +189,7 @@ export const BajasMermas: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      
+
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-red-800 via-rose-700 to-amber-800 text-white p-6 sm:p-8 rounded-3xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-4">
@@ -204,7 +263,7 @@ export const BajasMermas: React.FC = () => {
 
       {/* Top Bar: Search on Left + Actions on Right (Horizontal single-line) */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-stone-900 p-4 rounded-3xl border border-red-200/80 dark:border-stone-800 shadow-sm">
-        <form 
+        <form
           onSubmit={(e) => {
             e.preventDefault();
             setSearchTerm(searchInput);
@@ -271,7 +330,7 @@ export const BajasMermas: React.FC = () => {
               }}
               className="bg-amber-800 hover:bg-amber-700 text-white font-extrabold shadow-sm whitespace-nowrap"
             >
-              Recuperar
+              Pérdidas
             </Button>
           )}
         </div>
@@ -397,10 +456,21 @@ export const BajasMermas: React.FC = () => {
 
             <form onSubmit={handleCrearBaja} className="space-y-3">
               <div className="space-y-1">
-                <label className="font-bold text-stone-700 dark:text-stone-300 uppercase">Producto a Descartar</label>
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-stone-700 dark:text-stone-300 uppercase">Producto a Descartar / Procesar</label>
+                  {esPan ? (
+                    <span className="text-[10px] font-extrabold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                      🥖 Producto Panadería
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-stone-500 bg-stone-100 dark:bg-stone-800 px-2 py-0.5 rounded-full">
+                      📦 General
+                    </span>
+                  )}
+                </div>
                 <select
                   value={productoId}
-                  onChange={(e) => setProductoId(Number(e.target.value))}
+                  onChange={(e) => handleProductoChange(Number(e.target.value))}
                   className="w-full bg-stone-50 dark:bg-stone-950 p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 font-bold"
                 >
                   {productos.map(p => (
@@ -413,31 +483,119 @@ export const BajasMermas: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <label className="font-bold text-stone-700 dark:text-stone-300 uppercase">Cantidad Descartada</label>
+                  <label className="font-bold text-stone-700 dark:text-stone-300 uppercase">Cantidad</label>
                   <input
                     type="number"
                     min="1"
                     required
                     value={cantidad}
-                    onChange={(e) => setCantidad(Number(e.target.value))}
+                    onChange={(e) => handleCantidadChange(Number(e.target.value))}
                     className="w-full bg-stone-50 dark:bg-stone-950 p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 font-mono font-bold"
                   />
+                  {selectedProd && (
+                    <span className={`text-[10px] block ${cantidad > selectedProd.stock ? 'text-red-500 font-bold' : 'text-stone-500'}`}>
+                      Mostrador: {selectedProd.stock} u.
+                    </span>
+                  )}
                 </div>
 
                 <div className="space-y-1">
                   <label className="font-bold text-stone-700 dark:text-stone-300 uppercase">Motivo</label>
                   <select
                     value={motivo}
-                    onChange={(e) => setMotivo(e.target.value)}
+                    onChange={(e) => {
+                      const newMot = e.target.value;
+                      setMotivo(newMot);
+                      if (newMot === 'Transformacion') {
+                        if (esPan) {
+                          setEsParaTransformar(true);
+                        } else {
+                          showWarning('La transformación a insumo solo está permitida para productos de panadería (panes).', 'Producto no transformable');
+                          setMotivo('Vencimiento');
+                          setEsParaTransformar(false);
+                        }
+                      } else {
+                        setEsParaTransformar(false);
+                      }
+                    }}
                     className="w-full bg-stone-50 dark:bg-stone-950 p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 font-bold"
                   >
                     <option value="Vencimiento">Vencimiento / No vendido</option>
                     <option value="ProduccionDefectuosa">Merma / Defecto de Horno</option>
                     <option value="Averia">Avería / Rotura de empaque</option>
                     <option value="Devolucion">Devolución de Cliente</option>
+                    <option value="Transformacion">Transformación (Recuperar como Insumo)</option>
                   </select>
                 </div>
               </div>
+
+              {/* Sección de Validación y Tratamiento para Panadería */}
+              {esPan ? (
+                <div className={`p-3 rounded-2xl border transition-all ${
+                  esParaTransformar 
+                    ? 'bg-amber-500/10 border-amber-500/40 dark:bg-amber-950/20 dark:border-amber-600/40' 
+                    : 'bg-stone-50 dark:bg-stone-950/60 border-stone-200 dark:border-stone-800'
+                }`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">🥖</span>
+                      <div>
+                        <p className="font-extrabold text-stone-800 dark:text-stone-200 text-xs">
+                          Tratamiento para Panes
+                        </p>
+                        <p className="text-[11px] text-stone-500 dark:text-stone-400">
+                          ¿Es para Transformar en Materia Prima (Insumo)?
+                        </p>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={esParaTransformar}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setEsParaTransformar(checked);
+                          if (checked) {
+                            setMotivo('Transformacion');
+                            setKilosTransformacion(Number((cantidad * 0.08).toFixed(2)));
+                          } else {
+                            setMotivo('Vencimiento');
+                          }
+                        }}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-5 bg-stone-300 peer-focus:outline-none rounded-full peer dark:bg-stone-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-600"></div>
+                    </label>
+                  </div>
+
+                  {esParaTransformar && (
+                    <div className="mt-2.5 pt-2.5 border-t border-amber-500/20 grid grid-cols-2 gap-2 text-[11px]">
+                      <div>
+                        <span className="text-stone-500 dark:text-stone-400 block font-semibold">Destino del Insumo:</span>
+                        <span className="font-bold text-amber-800 dark:text-amber-300 block">Pan de Transformación</span>
+                        <span className="text-[10px] text-stone-500 block">(Harina de Pan / Pastas Negras)</span>
+                      </div>
+                      <div>
+                        <label className="text-stone-700 dark:text-stone-300 block font-bold">Kilos a sumar (Kg):</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          value={kilosTransformacion}
+                          onChange={(e) => setKilosTransformacion(Number(e.target.value))}
+                          className="w-full mt-1 bg-white dark:bg-stone-900 p-1.5 rounded-lg border border-amber-300 dark:border-amber-700 font-mono font-bold text-xs"
+                        />
+                        <span className="text-[9px] text-stone-500 block mt-0.5">Estimado: 80g por unidad</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-2.5 rounded-xl bg-stone-100/60 dark:bg-stone-800/40 border border-stone-200 dark:border-stone-800 text-[11px] text-stone-500 dark:text-stone-400 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-stone-400 shrink-0" />
+                  <span>Producto no panadería: Se descuenta directamente de inventario sin pase a transformación.</span>
+                </div>
+              )}
 
               <div className="space-y-1">
                 <label className="font-bold text-stone-700 dark:text-stone-300 uppercase">Observaciones / Justificación</label>
@@ -445,7 +603,7 @@ export const BajasMermas: React.FC = () => {
                   rows={2}
                   value={observaciones}
                   onChange={(e) => setObservaciones(e.target.value)}
-                  placeholder="Pan del día anterior no apto para venta fresca..."
+                  placeholder={esParaTransformar ? "Pan del día anterior recuperado para molienda y harina de pan..." : "Pan o producto no apto para venta fresca..."}
                   className="w-full bg-stone-50 dark:bg-stone-950 p-2.5 rounded-xl border border-stone-300 dark:border-stone-700"
                 />
               </div>
@@ -464,10 +622,14 @@ export const BajasMermas: React.FC = () => {
                   type="submit"
                   variant="primary"
                   size="md"
-                  className="flex-1 bg-red-600 hover:bg-red-500 text-white"
+                  className={`flex-1 text-white font-extrabold shadow-sm ${
+                    esParaTransformar 
+                      ? 'bg-amber-600 hover:bg-amber-500' 
+                      : 'bg-red-600 hover:bg-red-500'
+                  }`}
                   isLoading={isSubmitting}
                 >
-                  Registrar Baja
+                  {esParaTransformar ? 'Registrar y Transformar' : 'Registrar Baja'}
                 </Button>
               </div>
             </form>

@@ -12,6 +12,7 @@ export interface BajaProducto {
   usuarioId?: number;
   usuarioNombre?: string;
   observaciones?: string;
+  esParaTransformar?: boolean;
 }
 
 export const bajaService = {
@@ -27,7 +28,14 @@ export const bajaService = {
     return await api.get<BajaProducto>(`/bajas/${id}`);
   },
 
-  create: async (data: { productoId: number; cantidad: number; motivo: string; observaciones?: string }): Promise<ApiResponse<BajaProducto>> => {
+  create: async (data: { 
+    productoId: number; 
+    cantidad: number; 
+    motivo: string; 
+    observaciones?: string;
+    esParaTransformar?: boolean;
+    kilosTransformacion?: number;
+  }): Promise<ApiResponse<BajaProducto>> => {
     return await api.post<BajaProducto>('/bajas', data);
   },
 

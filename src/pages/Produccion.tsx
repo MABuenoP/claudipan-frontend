@@ -14,7 +14,7 @@ import {
   CheckCircle2, Play, Clock, RefreshCw, X, ChevronRight,
   Sparkles, Scale, Layers, Recycle, ShieldAlert, CheckCircle,
   Timer, ArrowRight, Info, AlertOctagon, ChefHat, FileSpreadsheet,
-  Search, ChevronDown, Eye, Edit2
+  Search, ChevronDown, Eye, Edit2, Package
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Pagination } from '../components/ui/Pagination';
@@ -24,12 +24,12 @@ import { LoadingModal } from '../components/ui/LoadingModal';
 
 export const Produccion: React.FC = () => {
   const { user } = useAuth();
-  const { showSuccess, showError, showWarning } = useFeedback();
+  const { showSuccess, showError, showWarning, showConfirm } = useFeedback();
   
   // Roles
   const userRole = user?.rol || 'Panadero';
   const canCreateOrders = userRole === 'Administrador' || userRole === 'Gerente';
-  const canExecuteOrders = userRole === 'Panadero' || userRole === 'Administrador';
+  const canExecuteOrders = userRole === 'Panadero' || userRole === 'Administrador' || userRole === 'Gerente';
   const canExportExcel = userRole === 'Administrador' || userRole === 'Gerente' || userRole === 'Contador' || userRole === 'Contable';
 
   const [activeTab, setActiveTab] = useState<'ordenes' | 'recetas' | 'transformacion' | 'insumos'>('ordenes');
@@ -75,21 +75,14 @@ export const Produccion: React.FC = () => {
   const [preChequeoData, setPreChequeoData] = useState<PreChequeoInsumosResponse | null>(null);
   const [loadingPreChequeo, setLoadingPreChequeo] = useState(false);
 
-  // Modal 2: Paso 1 - Cargar Insumos (Panadero)
+  // Modal & Acciones: Cargar Insumos & Cargar Producción
   const [ordenParaCargar, setOrdenParaCargar] = useState<OrdenProduccion | null>(null);
   const [obsCargue, setObsCargue] = useState('Insumos pesados y verificados');
 
-  // Modal 3: Paso 2 - Masa a Punto -> Pasar a Horneando (Panadero)
-  const [ordenParaHornear, setOrdenParaHornear] = useState<OrdenProduccion | null>(null);
-  const [obsHorneando, setObsHorneando] = useState('Masa leudada en punto óptimo');
-
-  // Modal 4: Paso 3 - Finalizar y Cuantificar Calidad (Panadero)
   const [ordenACuantificar, setOrdenACuantificar] = useState<OrdenProduccion | null>(null);
-  const [cantOptima, setCantOptima] = useState<number>(45);
-  const [cantBuenas, setCantBuenas] = useState<number>(5);
-  const [cantMalas, setCantMalas] = useState<number>(0);
-  const [destinoMalas, setDestinoMalas] = useState<'Transformacion' | 'Desecho'>('Transformacion');
-  const [obsCuantificar, setObsCuantificar] = useState('Horneado con corteza dorada y miga suave');
+  const [cantProducida, setCantProducida] = useState<number>(50);
+  const [cantPerdidas, setCantPerdidas] = useState<number>(0);
+  const [obsCuantificar, setObsCuantificar] = useState('Lote horneado y culminado exitosamente');
 
   // Modal 5: Transformar Harina de Pan & Pastas Negras
   const [showTransformarModal, setShowTransformarModal] = useState(false);
@@ -399,59 +392,60 @@ export const Produccion: React.FC = () => {
     }
   };
 
-  // Manejador: Paso 1 Panadero - Cargar Insumos & Iniciar Preparación
-  const handleConfirmarCargueInsumos = async () => {
-    if (!ordenParaCargar) return;
+  // Manejador: Cargar Insumos & Descontar del inventario -> Pasa orden a "En proceso"
+  const handleCargarInsumosOrden = async (ord: OrdenProduccion) => {
+    const confirmed = await showConfirm(
+      `¿Desea cargar los insumos de la fórmula para "${ord.productoNombre}" (${ord.cantidadProgramada} unidades)? Se descontarán los insumos del inventario y la orden pasará a estado 'En proceso'.`,
+      'Cargar Insumos de Producción'
+    );
+    if (!confirmed) return;
+
     setIsSubmitting(true);
-    const res = await produccionService.cargarInsumos(ordenParaCargar.id, {
-      observaciones: obsCargue
+    const res = await produccionService.cargarInsumos(ord.id, {
+      observaciones: 'Insumos pesados y descontados de inventario'
     });
     setIsSubmitting(false);
 
     if (res.success) {
-      setOrdenParaCargar(null);
       fetchData();
-      showSuccess(res.message || 'Insumos descontados y orden en preparación.', 'Cargue Exitoso');
+      showSuccess(
+        res.message || 'Insumos descontados exitosamente. La orden ha pasado a estado: En proceso.',
+        'Insumos Descontados'
+      );
     } else {
       showError(res.message || 'Error al cargar insumos', 'Error de Cargue');
     }
   };
 
-  // Manejador: Paso 2 Panadero - Masa a Punto -> Pasar a Horneando
-  const handleConfirmarPasarHorneando = async () => {
-    if (!ordenParaHornear) return;
-    setIsSubmitting(true);
-    const res = await produccionService.pasarHorneando(ordenParaHornear.id, {
-      observaciones: obsHorneando
-    });
-    setIsSubmitting(false);
-
-    if (res.success) {
-      setOrdenParaHornear(null);
-      fetchData();
-      showSuccess('¡Masa a punto confirmada! La orden ha entrado a la cámara de HORNEANDO.', 'Etapa Horneando');
-    } else {
-      showError(res.message || 'Error al pasar a horneando', 'Error de Horneado');
-    }
+  // Manejador: Abrir modal de Cargar Producción
+  const handleAbrirCargarProduccion = (ord: OrdenProduccion) => {
+    setOrdenACuantificar(ord);
+    setCantProducida(ord.cantidadProgramada);
+    setCantPerdidas(0);
+    setObsCuantificar('Lote horneado y culminado en óptimas condiciones.');
   };
 
-  // Manejador: Paso 3 Panadero - Culminar Horneado & Cuantificar Calidad
-  const handleConfirmarCuantificacion = async (e: React.FormEvent) => {
+  // Manejador: Confirmar Cargar Producción (Valores Producidos y Pérdidas) -> Pasa a Terminado
+  const handleConfirmarCargarProduccion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ordenACuantificar) return;
 
-    const total = cantOptima + cantBuenas + cantMalas;
-    if (total <= 0) {
-      showWarning('Debe especificar al menos una (1) unidad producida para cuantificar.', 'Cantidad Requerida');
+    if (cantProducida < 0 || cantPerdidas < 0) {
+      showWarning('Las cantidades no pueden ser negativas.', 'Valores Inválidos');
+      return;
+    }
+
+    if (cantProducida === 0 && cantPerdidas === 0) {
+      showWarning('Debe ingresar al menos una unidad producida o una unidad en pérdida.', 'Valores Requeridos');
       return;
     }
 
     setIsSubmitting(true);
     const res = await produccionService.finalizarYCuantificar(ordenACuantificar.id, {
-      cantOptima,
-      cantBuenasCondiciones: cantBuenas,
-      cantMalasCondiciones: cantMalas,
-      destinoMalasCondiciones: destinoMalas,
+      cantOptima: cantProducida,
+      cantBuenasCondiciones: 0,
+      cantMalasCondiciones: cantPerdidas,
+      destinoMalasCondiciones: 'Transformacion',
       observaciones: obsCuantificar
     });
     setIsSubmitting(false);
@@ -459,9 +453,12 @@ export const Produccion: React.FC = () => {
     if (res.success) {
       setOrdenACuantificar(null);
       fetchData();
-      showSuccess(res.message || '¡Producción entregada y cuantificada exitosamente!', 'Producción Culminada');
+      showSuccess(
+        res.message || '¡Producción cargada exitosamente! Se incrementó el inventario de vitrina y el lote quedó Terminado.',
+        'Lote Terminado'
+      );
     } else {
-      showError(res.message || 'Error al finalizar producción', 'Error de Finalización');
+      showError(res.message || 'Error al registrar la producción', 'Error de Producción');
     }
   };
 
@@ -474,26 +471,23 @@ export const Produccion: React.FC = () => {
             <Clock className="w-3 h-3" /> PENDIENTE
           </span>
         );
+      case 'En Proceso':
+      case 'En_Proceso':
       case 'Preparando':
       case 'En_Preparacion':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-purple-500/20 text-purple-800 dark:text-purple-300 border border-purple-500/30 animate-pulse">
-            <ChefHat className="w-3 h-3" /> PREPARANDO MASA
-          </span>
-        );
       case 'Horneando':
-      case 'En_Proceso':
-      case 'En Proceso':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-orange-500/20 text-orange-800 dark:text-orange-300 border border-orange-500/30 animate-pulse">
-            <Flame className="w-3 h-3 text-orange-600 animate-bounce" /> HORNEANDO
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-blue-500/20 text-blue-800 dark:text-blue-300 border border-blue-500/30 animate-pulse">
+            <Flame className="w-3 h-3 text-blue-600 animate-bounce" /> EN PROCESO
           </span>
         );
+      case 'Terminado':
+      case 'Terminada':
       case 'Entregada':
       case 'Finalizada':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30">
-            <CheckCircle className="w-3 h-3" /> ENTREGADA A VITRINA
+            <CheckCircle className="w-3 h-3" /> TERMINADO
           </span>
         );
       case 'Cancelada':
@@ -936,55 +930,38 @@ export const Produccion: React.FC = () => {
                         {getEstadoBadge(ord.estado)}
                       </td>
                       <td className="py-3 px-4 text-right">
-                        {canExecuteOrders && ord.estado === 'Pendiente' && (
+                        {ord.estado === 'Pendiente' && (
                           <Button
                             variant="primary"
                             size="sm"
-                            onClick={() => {
-                              setOrdenParaCargar(ord);
-                              setObsCargue('Insumos pesados y verificados en bodega');
-                            }}
-                            className="bg-purple-700 hover:bg-purple-600 text-white font-bold text-[11px]"
+                            disabled={!canExecuteOrders}
+                            onClick={() => handleCargarInsumosOrden(ord)}
+                            className="bg-purple-700 hover:bg-purple-600 text-white font-bold text-[11px] shadow-sm cursor-pointer whitespace-nowrap"
                           >
-                            1. Cargar Insumos
+                            <Package className="w-3.5 h-3.5 mr-1 inline" /> Cargar Insumos
                           </Button>
                         )}
 
-                        {canExecuteOrders && (ord.estado === 'Preparando' || ord.estado === 'En_Preparacion') && (
+                        {(ord.estado === 'En Proceso' || ord.estado === 'En_Proceso' || ord.estado === 'Preparando' || ord.estado === 'En_Preparacion' || ord.estado === 'Horneando') && (
                           <Button
                             variant="primary"
                             size="sm"
-                            onClick={() => {
-                              setOrdenParaHornear(ord);
-                              setObsHorneando('Masa leudada en punto óptimo');
-                            }}
-                            className="bg-orange-600 hover:bg-orange-500 text-white font-bold text-[11px]"
+                            disabled={!canExecuteOrders}
+                            onClick={() => handleAbrirCargarProduccion(ord)}
+                            className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] shadow-sm cursor-pointer whitespace-nowrap"
                           >
-                            2. Masa a Punto
+                            <ChefHat className="w-3.5 h-3.5 mr-1 inline" /> Cargar Producción
                           </Button>
                         )}
 
-                        {canExecuteOrders && (ord.estado === 'Horneando' || ord.estado === 'En_Proceso' || ord.estado === 'En Proceso') && (
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={() => {
-                              setOrdenACuantificar(ord);
-                              setCantOptima(ord.cantidadProgramada);
-                              setCantBuenas(0);
-                              setCantMalas(0);
-                              setObsCuantificar('Lote culminado con dorado homogéneo');
-                            }}
-                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px]"
+                        {(ord.estado === 'Terminado' || ord.estado === 'Terminada' || ord.estado === 'Entregada' || ord.estado === 'Finalizada') && (
+                          <button
+                            disabled
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 cursor-default opacity-90"
                           >
-                            3. Cuantificar Lote
-                          </Button>
-                        )}
-
-                        {ord.estado === 'Entregada' && (
-                          <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-end gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Culminada
-                          </span>
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                            Realizado
+                          </button>
                         )}
                       </td>
                     </tr>
@@ -1023,42 +1000,30 @@ export const Produccion: React.FC = () => {
                       <Button
                         variant="primary"
                         size="sm"
-                        onClick={() => {
-                          setOrdenParaCargar(ord);
-                          setObsCargue('Insumos pesados y verificados en bodega');
-                        }}
-                        className="w-full bg-purple-700 text-white font-bold text-xs"
+                        onClick={() => handleCargarInsumosOrden(ord)}
+                        className="w-full bg-purple-700 hover:bg-purple-600 text-white font-bold text-xs"
                       >
-                        1. Cargar Insumos
+                        <Package className="w-3.5 h-3.5 mr-1 inline" /> Cargar Insumos
                       </Button>
                     )}
-                    {(ord.estado === 'Preparando' || ord.estado === 'En_Preparacion') && (
+                    {(ord.estado === 'En Proceso' || ord.estado === 'En_Proceso' || ord.estado === 'Preparando' || ord.estado === 'En_Preparacion' || ord.estado === 'Horneando') && (
                       <Button
                         variant="primary"
                         size="sm"
-                        onClick={() => {
-                          setOrdenParaHornear(ord);
-                          setObsHorneando('Masa leudada en punto óptimo');
-                        }}
-                        className="w-full bg-orange-600 text-white font-bold text-xs"
+                        onClick={() => handleAbrirCargarProduccion(ord)}
+                        className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs"
                       >
-                        2. Masa a Punto
+                        <ChefHat className="w-3.5 h-3.5 mr-1 inline" /> Cargar Producción
                       </Button>
                     )}
-                    {(ord.estado === 'Horneando' || ord.estado === 'En_Proceso') && (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => {
-                          setOrdenACuantificar(ord);
-                          setCantOptima(ord.cantidadProgramada);
-                          setCantBuenas(0);
-                          setCantMalas(0);
-                        }}
-                        className="w-full bg-emerald-600 text-white font-bold text-xs"
+                    {(ord.estado === 'Terminado' || ord.estado === 'Terminada' || ord.estado === 'Entregada' || ord.estado === 'Finalizada') && (
+                      <button
+                        disabled
+                        className="w-full py-2 rounded-xl text-xs font-extrabold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 flex items-center justify-center gap-1.5 cursor-default opacity-90"
                       >
-                        3. Cuantificar Lote
-                      </Button>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        Realizado
+                      </button>
                     )}
                   </div>
                 )}
@@ -2688,6 +2653,132 @@ export const Produccion: React.FC = () => {
                   isLoading={isSubmitting}
                 >
                   Guardar Cambios
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Cargar Producción y Culminar Lote */}
+      {ordenACuantificar && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-stone-900 border border-amber-300 dark:border-stone-700 rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl animate-fade-in text-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-200 dark:border-stone-800">
+              <div className="flex items-center gap-2">
+                <ChefHat className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                <div>
+                  <h3 className="font-heading font-extrabold text-base text-stone-900 dark:text-stone-100">
+                    Cargar Producción
+                  </h3>
+                  <p className="text-[11px] text-stone-500">
+                    Orden <strong className="font-mono text-amber-700 dark:text-amber-400">{ordenACuantificar.codigoOrden}</strong> — {ordenACuantificar.productoNombre}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setOrdenACuantificar(null)} 
+                className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 p-1 rounded-xl cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmarCargarProduccion} className="space-y-4">
+              {/* Resumen de la Orden */}
+              <div className="grid grid-cols-2 gap-2 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-[11px]">
+                <div>
+                  <span className="text-stone-500 dark:text-stone-400 block font-medium">Programado:</span>
+                  <strong className="font-mono text-xs text-stone-900 dark:text-stone-100">{ordenACuantificar.cantidadProgramada} unidades</strong>
+                </div>
+                <div>
+                  <span className="text-stone-500 dark:text-stone-400 block font-medium">Fórmula / Receta:</span>
+                  <strong className="text-xs text-amber-800 dark:text-amber-300 truncate block">{ordenACuantificar.recetaNombre || 'Fórmula Estándar'}</strong>
+                </div>
+              </div>
+
+              {/* Valores Producidos y Pérdidas */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Valores Producidos */}
+                <div className="space-y-1.5 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30">
+                  <label className="font-extrabold text-emerald-900 dark:text-emerald-300 uppercase text-[10px] flex items-center gap-1">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600" /> Valores Producidos (Vitrina)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={cantProducida}
+                    onChange={(e) => setCantProducida(Math.max(0, Number(e.target.value)))}
+                    className="w-full bg-white dark:bg-stone-950 p-2.5 rounded-xl border border-emerald-300 dark:border-emerald-700 font-mono font-bold text-sm text-emerald-700 dark:text-emerald-300"
+                  />
+                  <p className="text-[10px] text-stone-500 dark:text-stone-400">
+                    Aumenta el inventario de stock disponible del producto.
+                  </p>
+                </div>
+
+                {/* Pérdidas */}
+                <div className="space-y-1.5 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30">
+                  <label className="font-extrabold text-amber-900 dark:text-amber-300 uppercase text-[10px] flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600" /> Pérdidas (Mermas)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={cantPerdidas}
+                    onChange={(e) => setCantPerdidas(Math.max(0, Number(e.target.value)))}
+                    className="w-full bg-white dark:bg-stone-950 p-2.5 rounded-xl border border-amber-300 dark:border-amber-700 font-mono font-bold text-sm text-amber-700 dark:text-amber-300"
+                  />
+                  <p className="text-[10px] text-stone-500 dark:text-stone-400">
+                    Se registran en bajas y se suman al <strong>Pan de Transformación</strong> ({Number((cantPerdidas * 0.08).toFixed(2))} Kg aprox.).
+                  </p>
+                </div>
+              </div>
+
+              {/* Trazabilidad de Transformación en Vivo */}
+              {cantPerdidas > 0 && (
+                <div className="p-3 rounded-2xl bg-amber-100/60 dark:bg-stone-950 border border-amber-300 dark:border-stone-800 text-[11px] space-y-1">
+                  <p className="font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+                    <Recycle className="w-3.5 h-3.5 text-amber-600" /> Destino de Pérdidas: Insumos de Transformación
+                  </p>
+                  <p className="text-stone-600 dark:text-stone-400 text-[10px]">
+                    Las {cantPerdidas} unidades defectuosas se registrarán en bajas contables y pasarán como <strong>{Number((cantPerdidas * 0.08).toFixed(2))} Kg</strong> de materia prima al inventario de <em>Pan de Transformación</em> para harina de pan y pastas negras.
+                  </p>
+                </div>
+              )}
+
+              {/* Observaciones */}
+              <div className="space-y-1">
+                <label className="font-bold text-stone-700 dark:text-stone-300 uppercase text-[10px]">Observaciones del Lote</label>
+                <textarea
+                  rows={2}
+                  value={obsCuantificar}
+                  onChange={(e) => setObsCuantificar(e.target.value)}
+                  placeholder="Lote horneado con corteza uniforme, color dorado..."
+                  className="w-full bg-stone-50 dark:bg-stone-950 p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 text-xs"
+                />
+              </div>
+
+              {/* Botones de Acción */}
+              <div className="flex gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  className="flex-1 cursor-pointer"
+                  onClick={() => setOrdenACuantificar(null)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  className="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-extrabold shadow-sm cursor-pointer"
+                  isLoading={isSubmitting}
+                >
+                  Guardar y Culminar Lote
                 </Button>
               </div>
             </form>

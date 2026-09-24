@@ -79,7 +79,10 @@ export const Pedidos: React.FC = () => {
   // Filtered pedidos
   const filteredPedidos = pedidos.filter((p) => {
     const matchesEstado = filterEstado === 'Todos' || p.estado === filterEstado;
-    const matchesTipoPago = filterTipoPago === 'Todos' || p.tipoPago === filterTipoPago;
+    const matchesTipoPago =
+      filterTipoPago === 'Todos' ||
+      p.tipoPago === filterTipoPago ||
+      ((filterTipoPago === 'Nequi' || filterTipoPago === 'Transferencia') && (p.tipoPago === 'Nequi' || p.tipoPago === 'Transferencia'));
     const query = searchQuery.toLowerCase().trim();
     const matchesSearch =
       !query ||
@@ -335,8 +338,8 @@ export const Pedidos: React.FC = () => {
                       <div className="font-semibold">
                         {pedido.tipoPago === 'Credito_Fiado' ? (
                           <span className="text-amber-700 dark:text-amber-400">Crédito (Fiado)</span>
-                        ) : pedido.tipoPago === 'Nequi' ? (
-                          <span className="text-indigo-600 dark:text-indigo-400">Nequi / Transferencia</span>
+                        ) : (pedido.tipoPago === 'Nequi' || pedido.tipoPago === 'Transferencia') ? (
+                          <span className="text-indigo-600 dark:text-indigo-400">Transferencia / Nequi</span>
                         ) : (
                           <span className="text-emerald-700 dark:text-emerald-400">Efectivo</span>
                         )}
@@ -484,7 +487,11 @@ export const Pedidos: React.FC = () => {
               <div className="flex justify-between">
                 <span className="text-stone-500">Forma de Pago:</span>
                 <span className="font-bold">
-                  {selectedPedidoTicket.tipoPago === 'Credito_Fiado' ? 'Crédito (Fiado)' : selectedPedidoTicket.tipoPago}
+                  {selectedPedidoTicket.tipoPago === 'Credito_Fiado'
+                    ? 'Crédito (Fiado)'
+                    : (selectedPedidoTicket.tipoPago === 'Nequi' || selectedPedidoTicket.tipoPago === 'Transferencia')
+                    ? 'Transferencia / Nequi'
+                    : selectedPedidoTicket.tipoPago || 'Efectivo'}
                 </span>
               </div>
             </div>

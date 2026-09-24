@@ -128,14 +128,14 @@ export const produccionService = {
     return await api.post<OrdenProduccion>('/produccion/ordenes', data);
   },
 
-  // Paso 1 Panadero: Cargue de Insumos & Iniciar Preparación (permite saldo en negativo)
+  // Paso 1 Panadero / Admin / Gerente: Cargue de Insumos & Iniciar Preparación
   cargarInsumos: async (id: number, data?: { observaciones?: string }): Promise<ApiResponse<OrdenProduccion>> => {
-    return await api.patch<OrdenProduccion>(`/produccion/ordenes/${id}/cargar-insumos`, data || {});
+    return await api.post<OrdenProduccion>(`/produccion/ordenes/${id}/cargar-insumos`, data || {});
   },
 
   // Paso 2 Panadero: Masa a Punto -> Pasar a Horneando
   pasarHorneando: async (id: number, data?: { observaciones?: string }): Promise<ApiResponse<OrdenProduccion>> => {
-    return await api.patch<OrdenProduccion>(`/produccion/ordenes/${id}/pasar-horneando`, data || {});
+    return await api.post<OrdenProduccion>(`/produccion/ordenes/${id}/pasar-horneando`, data || {});
   },
 
   // Paso 3 Panadero: Culminar Horneado y Cuantificar Calidad (Óptimos, Buenas y Malas Condiciones)
