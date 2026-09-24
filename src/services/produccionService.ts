@@ -87,6 +87,10 @@ export const produccionService = {
     return await api.post<RecetaProduccion>('/produccion/recetas', data);
   },
 
+  updateReceta: async (id: number, data: any): Promise<ApiResponse<RecetaProduccion>> => {
+    return await api.post<RecetaProduccion>(`/produccion/recetas/${id}`, data);
+  },
+
   deleteReceta: async (id: number): Promise<ApiResponse<boolean>> => {
     return await api.delete<boolean>(`/produccion/recetas/${id}`);
   },

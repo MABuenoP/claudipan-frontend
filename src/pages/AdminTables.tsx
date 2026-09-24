@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Package, Layers, Users, Plus, Edit2, Trash2, CheckCircle2, AlertCircle,
-  RefreshCw, Camera, User, Search, X, FileSpreadsheet, ChevronDown
+  Package, Layers, Plus, Edit2, Trash2, CheckCircle2, AlertCircle,
+  RefreshCw, Search, X, FileSpreadsheet, ChevronDown
 } from 'lucide-react';
 import { productService, Product, ProductCreateRequest } from '../services/productService';
 import { categoryService, Categoria, CategoriaCreateRequest } from '../services/categoryService';
-import { authService, UsuarioAdmin, UpdateUsuarioAdminRequest } from '../services/authService';
 import { Pagination } from '../components/ui/Pagination';
 import { useAuth } from '../hooks/useAuth';
 import { useFeedback } from '../hooks/useFeedback';
@@ -16,17 +15,14 @@ import { LoadingModal } from '../components/ui/LoadingModal';
 export const AdminTables: React.FC = () => {
   const { user: currentUser } = useAuth();
   const { showSuccess, showError, showWarning, showConfirm } = useFeedback();
-  const canManageUsers = currentUser?.rol === 'Administrador' || currentUser?.rol === 'Gerente';
-  const canEditCredit = currentUser?.rol === 'Administrador' || currentUser?.rol === 'Gerente';
   const canExportExcel = currentUser?.rol === 'Administrador' || currentUser?.rol === 'Gerente' || currentUser?.rol === 'Contador' || currentUser?.rol === 'Contable';
 
-  const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'users'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'categories'>('products');
   const [loading, setLoading] = useState(true);
 
   // Entities
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Categoria[]>([]);
-  const [users, setUsers] = useState<UsuarioAdmin[]>([]);
 
   // Search & Mobile 10-in-10 states
   const [searchProdInput, setSearchProdInput] = useState('');
@@ -37,14 +33,9 @@ export const AdminTables: React.FC = () => {
   const [searchCatTerm, setSearchCatTerm] = useState('');
   const [visibleCatsMobile, setVisibleCatsMobile] = useState(10);
 
-  const [searchUserInput, setSearchUserInput] = useState('');
-  const [searchUserTerm, setSearchUserTerm] = useState('');
-  const [visibleUsersMobile, setVisibleUsersMobile] = useState(10);
-
   // Pagination states (10 per page for tables)
   const [pageProducts, setPageProducts] = useState(1);
   const [pageCategories, setPageCategories] = useState(1);
-  const [pageUsers, setPageUsers] = useState(1);
   const PAGE_SIZE_TABLE = 10;
 
   // Modals & forms state
@@ -71,39 +62,17 @@ export const AdminTables: React.FC = () => {
     descripcion: '',
   });
 
-  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-  const [editingUserId, setEditingUserId] = useState<number | null>(null);
-  const [userForm, setUserForm] = useState<UpdateUsuarioAdminRequest>({
-    primerNombre: '',
-    segundoNombre: '',
-    primerApellido: '',
-    segundoApellido: '',
-    nombre: '',
-    cedula: '',
-    email: '',
-    rol: 'Cliente',
-    telefono: '',
-    direccion: '',
-    limiteCredito: 500000,
-    activo: true,
-    password: '',
-    fotoBase64: '',
-  });
-
-  const userFileInputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fetchAllData = async () => {
     setLoading(true);
-    const [resProd, resCat, resUsers] = await Promise.all([
+    const [resProd, resCat] = await Promise.all([
       productService.getAllProducts(),
       categoryService.getAllCategories(),
-      authService.getAllUsers(),
     ]);
 
     if (resProd.success && resProd.data) setProducts(resProd.data);
     if (resCat.success && resCat.data) setCategories(resCat.data);
-    if (resUsers.success && resUsers.data) setUsers(resUsers.data);
 
     setLoading(false);
   };
@@ -190,72 +159,6 @@ export const AdminTables: React.FC = () => {
     }
   };
 
-  // Handlers for User CRUD
-  const handleSaveUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMessage(null);
-
-    const composedName = [userForm.primerNombre, userForm.segundoNombre, userForm.primerApellido, userForm.segundoApellido]
-      .filter(Boolean)
-      .join(' ')
-      .trim();
-
-    const payload = {
-      ...userForm,
-      nombre: composedName || userForm.nombre,
-    };
-
-    let res;
-    if (editingUserId) {
-      res = await authService.updateUserAdmin(editingUserId, payload);
-    } else {
-      res = await authService.createUserAdmin(payload);
-    }
-
-    if (res.success) {
-      setMessage({ type: 'success', text: res.message || 'Usuario guardado con éxito' });
-      showSuccess(res.message || 'Usuario registrado/actualizado con éxito.', 'Usuario Guardado');
-      setIsUserModalOpen(false);
-      fetchAllData();
-    } else {
-      setMessage({ type: 'error', text: res.message || 'Error al guardar el usuario' });
-      showError(res.message || 'Error al guardar el usuario', 'Error al Guardar');
-    }
-  };
-
-  const handleDeleteUser = async (id: number) => {
-    const confirmed = await showConfirm(
-      '¿Está seguro de que desea desactivar o suspender este usuario del sistema?',
-      'Desactivar Usuario'
-    );
-    if (!confirmed) return;
-
-    const res = await authService.deleteUserAdmin(id);
-    if (res.success) {
-      setMessage({ type: 'success', text: 'Usuario desactivado con éxito' });
-      showSuccess('Usuario desactivado con éxito.', 'Usuario Desactivado');
-      fetchAllData();
-    } else {
-      showError(res.message || 'Error al desactivar usuario', 'Error al Desactivar');
-    }
-  };
-
-  const handleUserPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-      showWarning('La fotografía no puede superar 2MB de tamaño.', 'Archivo Demasiado Grande');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setUserForm(prev => ({ ...prev, fotoBase64: event.target?.result as string }));
-    };
-    reader.readAsDataURL(file);
-  };
-
   // Filtering
   const filteredProducts = products.filter(p => {
     if (!searchProdTerm) return true;
@@ -276,19 +179,6 @@ export const AdminTables: React.FC = () => {
       c.nombre.toLowerCase().includes(term) ||
       (c.descripcion && c.descripcion.toLowerCase().includes(term)) ||
       `#${c.id}`.includes(term)
-    );
-  });
-
-  const filteredUsers = users.filter(u => {
-    if (!searchUserTerm) return true;
-    const term = searchUserTerm.toLowerCase();
-    const displayName = [u.primerNombre, u.segundoNombre, u.primerApellido, u.segundoApellido].filter(Boolean).join(' ') || u.nombre;
-    return (
-      displayName.toLowerCase().includes(term) ||
-      u.email.toLowerCase().includes(term) ||
-      (u.cedula && u.cedula.toLowerCase().includes(term)) ||
-      (u.telefono && u.telefono.toLowerCase().includes(term)) ||
-      u.rol.toLowerCase().includes(term)
     );
   });
 
@@ -326,26 +216,6 @@ export const AdminTables: React.FC = () => {
     });
   };
 
-  const handleExportUsers = () => {
-    exportToExcel<UsuarioAdmin>({
-      filename: 'Usuarios_Roles_Cartera_Claudipan',
-      sheetName: 'Usuarios',
-      title: 'Reporte Oficial de Usuarios, Roles y Topes de Crédito - Claudipan',
-      data: filteredUsers,
-      columns: [
-        { header: 'ID', accessor: (u) => u.id, width: 10 },
-        { header: 'Nombre Completo', accessor: (u) => [u.primerNombre, u.segundoNombre, u.primerApellido, u.segundoApellido].filter(Boolean).join(' ') || u.nombre, width: 30 },
-        { header: 'Cédula / NIT', accessor: (u) => u.cedula || '', width: 16 },
-        { header: 'Email', accessor: (u) => u.email, width: 28 },
-        { header: 'Teléfono', accessor: (u) => u.telefono || '', width: 16 },
-        { header: 'Rol', accessor: (u) => u.rol, width: 16 },
-        { header: 'Cupo Crédito ($)', accessor: (u) => u.limiteCredito, width: 18 },
-        { header: 'Deuda Actual ($)', accessor: (u) => u.deudaActual || 0, width: 18 },
-        { header: 'Estado', accessor: (u) => u.activo ? 'Activo' : 'Inactivo', width: 14 },
-      ],
-    });
-  };
-
   return (
     <div className="min-h-screen bg-[#FFFBEB]/60 dark:bg-stone-950 text-stone-900 dark:text-stone-100 py-10 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -357,7 +227,7 @@ export const AdminTables: React.FC = () => {
               Administración de Maestros
             </h1>
             <p className="text-sm text-stone-600 dark:text-stone-400 mt-1">
-              Control de Catálogo, Categorías, Usuarios y Políticas de Crédito Individuales.
+              Control de Catálogo de Productos y Categorías del Sistema Claudipan.
             </p>
           </div>
 
@@ -402,17 +272,6 @@ export const AdminTables: React.FC = () => {
           >
             <Layers className="w-4 h-4" />
             Categorías ({categories.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`flex items-center gap-2 pb-3 px-2 font-bold text-sm transition-all border-b-2 whitespace-nowrap ${activeTab === 'users'
-                ? 'border-amber-600 text-amber-700 dark:text-amber-400 dark:border-amber-400'
-                : 'border-transparent text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
-              }`}
-          >
-            <Users className="w-4 h-4" />
-            Usuarios & Roles ({users.length})
           </button>
         </div>
 
@@ -848,316 +707,6 @@ export const AdminTables: React.FC = () => {
             </div>
           </div>
         )}
-
-        {/* Tab 3: Users */}
-        {activeTab === 'users' && (
-          <div className="space-y-4">
-            {/* Top Bar: Search on Left + Actions on Right */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-stone-900 p-4 rounded-3xl border border-amber-200/80 dark:border-stone-800 shadow-sm">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setSearchUserTerm(searchUserInput);
-                  setPageUsers(1);
-                }}
-                className="flex items-center gap-2 flex-1 max-w-md"
-              >
-                <div className="relative flex-1">
-                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-                  <input
-                    type="text"
-                    placeholder="Buscar usuario por nombre, cédula, email o rol..."
-                    value={searchUserInput}
-                    onChange={(e) => {
-                      setSearchUserInput(e.target.value);
-                      if (e.target.value === '') setSearchUserTerm('');
-                    }}
-                    className="w-full pl-9 pr-8 py-2 bg-stone-50 dark:bg-stone-950 border border-amber-200/80 dark:border-stone-800 rounded-2xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                  />
-                  {searchUserInput && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSearchUserInput('');
-                        setSearchUserTerm('');
-                      }}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="sm"
-                  className="bg-amber-800 hover:bg-amber-700 text-white font-extrabold px-4 whitespace-nowrap"
-                >
-                  Buscar
-                </Button>
-              </form>
-
-              <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                {canExportExcel && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    leftIcon={<FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
-                    onClick={handleExportUsers}
-                    className="text-emerald-700 dark:text-emerald-300 border-emerald-600 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 dark:hover:text-white cursor-pointer shadow-sm whitespace-nowrap"
-                  >
-                    Exportar a Excel
-                  </Button>
-                )}
-                {canManageUsers && (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    leftIcon={<Plus className="w-4 h-4" />}
-                    onClick={() => {
-                      setEditingUserId(null);
-                      setUserForm({
-                        primerNombre: '',
-                        segundoNombre: '',
-                        primerApellido: '',
-                        segundoApellido: '',
-                        nombre: '',
-                        cedula: '',
-                        email: '',
-                        rol: 'Cliente',
-                        telefono: '',
-                        direccion: '',
-                        limiteCredito: 500000,
-                        activo: true,
-                        password: 'Claudipan123*',
-                        fotoBase64: '',
-                      });
-                      setIsUserModalOpen(true);
-                    }}
-                    className="bg-amber-800 hover:bg-amber-700 text-white font-extrabold shadow-sm whitespace-nowrap"
-                  >
-                    Usuario
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Desktop Table */}
-            <div className="hidden md:block bg-white dark:bg-stone-900 rounded-3xl border border-amber-200/80 dark:border-stone-800 shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-stone-700 dark:text-stone-300">
-                  <thead className="bg-amber-500/10 dark:bg-stone-800/80 text-xs uppercase font-extrabold text-stone-600 dark:text-stone-400 border-b border-amber-200/80 dark:border-stone-800">
-                    <tr>
-                      <th className="py-3.5 px-6">Usuario</th>
-                      <th className="py-3.5 px-6">Email & Cédula</th>
-                      <th className="py-3.5 px-6">Rol</th>
-                      <th className="py-3.5 px-6">Cupo Crédito</th>
-                      <th className="py-3.5 px-6">Deuda Actual</th>
-                      <th className="py-3.5 px-6">Estado</th>
-                      <th className="py-3.5 px-6 text-right">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-amber-100 dark:divide-stone-800">
-                    {filteredUsers.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="py-8 text-center text-stone-400 italic">
-                          No se encontraron usuarios.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredUsers.slice((pageUsers - 1) * PAGE_SIZE_TABLE, pageUsers * PAGE_SIZE_TABLE).map((u) => {
-                        const displayName = [u.primerNombre, u.segundoNombre, u.primerApellido, u.segundoApellido].filter(Boolean).join(' ') || u.nombre;
-                        return (
-                          <tr key={u.id} className="hover:bg-amber-50/50 dark:hover:bg-stone-800/40 transition-colors">
-                            <td className="py-4 px-6 font-bold text-stone-900 dark:text-stone-100">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 overflow-hidden flex items-center justify-center font-bold text-amber-800 dark:text-amber-300 shrink-0">
-                                  {u.fotoBase64 ? (
-                                    <img src={u.fotoBase64} alt={displayName} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <span>{displayName.charAt(0).toUpperCase()}</span>
-                                  )}
-                                </div>
-                                <div>
-                                  <p className="font-bold text-stone-900 dark:text-stone-100">{displayName}</p>
-                                  <p className="text-xs text-stone-500 dark:text-stone-400">{u.telefono || 'Sin teléfono'}</p>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="py-4 px-6">
-                              <p className="text-stone-800 dark:text-stone-200">{u.email}</p>
-                              <p className="text-xs text-stone-500 dark:text-stone-400">CC: {u.cedula || 'Sin registrar'}</p>
-                            </td>
-                            <td className="py-4 px-6">
-                              <span className="px-3 py-1 rounded-xl text-xs font-extrabold bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30">
-                                {u.rol}
-                              </span>
-                            </td>
-                            <td className="py-4 px-6 font-semibold text-emerald-600 dark:text-emerald-400">
-                              ${(u.limiteCredito || 0).toLocaleString('es-CO')}
-                            </td>
-                            <td className="py-4 px-6 font-semibold text-red-600 dark:text-red-400">
-                              ${(u.deudaActual || 0).toLocaleString('es-CO')}
-                            </td>
-                            <td className="py-4 px-6">
-                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold ${u.activo ? 'bg-emerald-500/20 text-emerald-700' : 'bg-red-500/20 text-red-700'}`}>
-                                {u.activo ? 'Activo' : 'Inactivo'}
-                              </span>
-                            </td>
-                            <td className="py-4 px-6 text-right space-x-2">
-                              {canManageUsers && (
-                                <>
-                                  <button
-                                    onClick={() => {
-                                      setEditingUserId(u.id);
-                                      let pNom = u.primerNombre || '';
-                                      let sNom = u.segundoNombre || '';
-                                      let pApe = u.primerApellido || '';
-                                      let sApe = u.segundoApellido || '';
-
-                                      if (!pNom && !pApe && u.nombre) {
-                                        const parts = u.nombre.trim().split(/\s+/);
-                                        if (parts.length === 1) pNom = parts[0];
-                                        else if (parts.length === 2) { pNom = parts[0]; pApe = parts[1]; }
-                                        else if (parts.length === 3) { pNom = parts[0]; pApe = parts[1]; sApe = parts[2]; }
-                                        else if (parts.length >= 4) { pNom = parts[0]; sNom = parts[1]; pApe = parts[2]; sApe = parts.slice(3).join(' '); }
-                                      }
-
-                                      setUserForm({
-                                        primerNombre: pNom,
-                                        segundoNombre: sNom,
-                                        primerApellido: pApe,
-                                        segundoApellido: sApe,
-                                        nombre: u.nombre,
-                                        cedula: u.cedula || '',
-                                        email: u.email,
-                                        rol: u.rol,
-                                        telefono: u.telefono || '',
-                                        direccion: u.direccion || '',
-                                        limiteCredito: u.limiteCredito,
-                                        activo: u.activo,
-                                        password: '',
-                                        fotoBase64: u.fotoBase64 || '',
-                                      });
-                                      setIsUserModalOpen(true);
-                                    }}
-                                    title="Editar usuario"
-                                    className="p-2 text-amber-600 hover:bg-amber-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                                  >
-                                    <Edit2 className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteUser(u.id)}
-                                    title="Desactivar usuario"
-                                    className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-stone-800 rounded-xl transition-colors"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Desktop Pagination */}
-            <div className="hidden md:block">
-              <Pagination
-                currentPage={pageUsers}
-                totalItems={filteredUsers.length}
-                pageSize={PAGE_SIZE_TABLE}
-                onPageChange={setPageUsers}
-                itemLabel="usuarios"
-              />
-            </div>
-
-            {/* Mobile CardView (10 en 10) */}
-            <div className="md:hidden space-y-3">
-              {filteredUsers.slice(0, visibleUsersMobile).map(u => {
-                const displayName = [u.primerNombre, u.segundoNombre, u.primerApellido, u.segundoApellido].filter(Boolean).join(' ') || u.nombre;
-                return (
-                  <div key={u.id} className="bg-white dark:bg-stone-900 p-4 rounded-2xl border border-amber-200/80 dark:border-stone-800 shadow-sm space-y-2">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 overflow-hidden flex items-center justify-center font-bold text-amber-800 shrink-0">
-                        {u.fotoBase64 ? (
-                          <img src={u.fotoBase64} alt={displayName} className="w-full h-full object-cover" />
-                        ) : (
-                          <span>{displayName.charAt(0).toUpperCase()}</span>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-bold text-sm text-stone-900 dark:text-stone-100">{displayName}</h4>
-                        <p className="text-xs text-stone-500">{u.email}</p>
-                      </div>
-                      <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-amber-500/20 text-amber-800">
-                        {u.rol}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs pt-1 border-t border-amber-100 dark:border-stone-800">
-                      <span className="text-stone-500">Cupo: <strong className="font-mono text-emerald-600">${(u.limiteCredito || 0).toLocaleString('es-CO')}</strong></span>
-                      <span className="text-stone-500">Deuda: <strong className="font-mono text-red-600">${(u.deudaActual || 0).toLocaleString('es-CO')}</strong></span>
-                    </div>
-
-                    {canManageUsers && (
-                      <div className="flex justify-end gap-2 pt-1 border-t border-amber-100 dark:border-stone-800">
-                        <button
-                          onClick={() => {
-                            setEditingUserId(u.id);
-                            setUserForm({
-                              primerNombre: u.primerNombre || '',
-                              segundoNombre: u.segundoNombre || '',
-                              primerApellido: u.primerApellido || '',
-                              segundoApellido: u.segundoApellido || '',
-                              nombre: u.nombre,
-                              cedula: u.cedula || '',
-                              email: u.email,
-                              rol: u.rol,
-                              telefono: u.telefono || '',
-                              direccion: u.direccion || '',
-                              limiteCredito: u.limiteCredito,
-                              activo: u.activo,
-                              password: '',
-                              fotoBase64: u.fotoBase64 || '',
-                            });
-                            setIsUserModalOpen(true);
-                          }}
-                          className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(u.id)}
-                          className="px-2.5 py-1 bg-red-100 text-red-800 rounded-lg text-xs font-bold"
-                        >
-                          Desactivar
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              {visibleUsersMobile < filteredUsers.length && (
-                <div className="pt-2 text-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setVisibleUsersMobile(prev => prev + 10)}
-                    className="w-full text-amber-700 dark:text-amber-400 border-amber-500 font-bold"
-                  >
-                    <ChevronDown className="w-4 h-4 mr-1" /> Cargar 10 usuarios más ({visibleUsersMobile} de {filteredUsers.length})
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Modal Product */}
@@ -1327,228 +876,6 @@ export const AdminTables: React.FC = () => {
               <div className="pt-4 flex justify-end gap-2">
                 <button type="button" onClick={() => setIsCategoryModalOpen(false)} className="px-4 py-2 rounded-xl border text-xs font-bold">Cancelar</button>
                 <button type="submit" className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-extrabold">Guardar</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal User */}
-      {isUserModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-stone-900 w-full max-w-2xl rounded-3xl p-6 space-y-4 border border-amber-200 dark:border-stone-800 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-2 border-b border-stone-200 dark:border-stone-800">
-              <h3 className="text-xl font-bold">{editingUserId ? 'Editar Usuario / Rol' : 'Crear Nuevo Usuario'}</h3>
-              <button
-                type="button"
-                onClick={() => setIsUserModalOpen(false)}
-                className="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 dark:hover:text-stone-200"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveUser} className="space-y-4">
-              {/* Photo uploader */}
-              <div className="p-3 bg-amber-50/60 dark:bg-stone-950 rounded-2xl border border-amber-200/80 dark:border-stone-800 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/30 overflow-hidden flex items-center justify-center shrink-0">
-                    {userForm.fotoBase64 ? (
-                      <img src={userForm.fotoBase64} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-6 h-6 text-amber-700 dark:text-amber-400" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold">Foto del Usuario</p>
-                    <p className="text-[11px] text-stone-500 dark:text-stone-400">Formato Base64 relacionado</p>
-                  </div>
-                </div>
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => userFileInputRef.current?.click()}
-                    className="px-3 py-1.5 rounded-xl bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-xs font-bold hover:bg-stone-50 dark:hover:bg-stone-700"
-                  >
-                    Seleccionar Foto
-                  </button>
-                  <input
-                    ref={userFileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      const reader = new FileReader();
-                      reader.onload = (event) => {
-                        setUserForm((prev: any) => ({ ...prev, fotoBase64: event.target?.result as string }));
-                      };
-                      reader.readAsDataURL(file);
-                    }}
-                    className="hidden"
-                  />
-                </div>
-              </div>
-
-              {/* Name breakdown */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold mb-1">Primer Nombre *</label>
-                  <input
-                    type="text"
-                    required
-                    value={userForm.primerNombre || ''}
-                    onChange={(e) => setUserForm({ ...userForm, primerNombre: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold mb-1">Segundo Nombre (opcional)</label>
-                  <input
-                    type="text"
-                    value={userForm.segundoNombre || ''}
-                    onChange={(e) => setUserForm({ ...userForm, segundoNombre: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold mb-1">Primer Apellido *</label>
-                  <input
-                    type="text"
-                    required
-                    value={userForm.primerApellido || ''}
-                    onChange={(e) => setUserForm({ ...userForm, primerApellido: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold mb-1">Segundo Apellido (opcional)</label>
-                  <input
-                    type="text"
-                    value={userForm.segundoApellido || ''}
-                    onChange={(e) => setUserForm({ ...userForm, segundoApellido: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold mb-1">Cédula</label>
-                  <input
-                    type="text"
-                    value={userForm.cedula || ''}
-                    onChange={(e) => setUserForm({ ...userForm, cedula: e.target.value })}
-                    placeholder="1020304050"
-                    className="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold mb-1">Email *</label>
-                  <input
-                    type="email"
-                    required
-                    value={userForm.email}
-                    onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold mb-1">Rol Asignado</label>
-                  <select
-                    value={userForm.rol}
-                    onChange={(e) => setUserForm({ ...userForm, rol: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm font-bold"
-                  >
-                    <option value="Administrador">Administrador</option>
-                    <option value="Gerente">Gerente</option>
-                    <option value="Contable">Contable</option>
-                    <option value="Panadero">Panadero</option>
-                    <option value="Vendedor">Vendedor</option>
-                    <option value="Cliente">Cliente</option>
-                  </select>
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-bold">Cupo Crédito ($)</label>
-                    {!canEditCredit && (
-                      <span className="text-[10px] text-amber-600 font-bold">Solo Gerente/Admin</span>
-                    )}
-                  </div>
-                  <input
-                    type="number"
-                    disabled={!canEditCredit}
-                    value={userForm.limiteCredito}
-                    onChange={(e) => setUserForm({ ...userForm, limiteCredito: parseFloat(e.target.value) || 0 })}
-                    className={`w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm ${!canEditCredit ? 'opacity-60 cursor-not-allowed bg-stone-100 dark:bg-stone-800' : ''
-                      }`}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold mb-1">Teléfono / Celular</label>
-                  <input
-                    type="text"
-                    value={userForm.telefono}
-                    onChange={(e) => setUserForm({ ...userForm, telefono: e.target.value })}
-                    placeholder="300 123 4567"
-                    className="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold mb-1">Dirección</label>
-                  <input
-                    type="text"
-                    value={userForm.direccion}
-                    onChange={(e) => setUserForm({ ...userForm, direccion: e.target.value })}
-                    placeholder="Calle # Carrera..."
-                    className="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold mb-1">
-                  {editingUserId ? 'Nueva Contraseña (dejar en blanco para mantener la actual)' : 'Contraseña Inicial *'}
-                </label>
-                <input
-                  type="password"
-                  value={userForm.password}
-                  onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
-                  placeholder={editingUserId ? 'Mantener contraseña actual' : 'Mínimo 6 caracteres'}
-                  className="w-full p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-transparent text-sm"
-                />
-              </div>
-
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="activo"
-                  checked={userForm.activo}
-                  onChange={(e) => setUserForm({ ...userForm, activo: e.target.checked })}
-                />
-                <label htmlFor="activo" className="text-xs font-bold">Usuario Activo en el Sistema</label>
-              </div>
-
-              <div className="pt-4 flex justify-end gap-2 border-t border-stone-200 dark:border-stone-800">
-                <button
-                  type="button"
-                  onClick={() => setIsUserModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border text-xs font-bold hover:bg-stone-50 dark:hover:bg-stone-800"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-extrabold shadow-md shadow-amber-600/20"
-                >
-                  Guardar Usuario
-                </button>
               </div>
             </form>
           </div>

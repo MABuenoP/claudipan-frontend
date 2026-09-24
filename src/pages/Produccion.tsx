@@ -14,7 +14,7 @@ import {
   CheckCircle2, Play, Clock, RefreshCw, X, ChevronRight,
   Sparkles, Scale, Layers, Recycle, ShieldAlert, CheckCircle,
   Timer, ArrowRight, Info, AlertOctagon, ChefHat, FileSpreadsheet,
-  Search, ChevronDown, Eye
+  Search, ChevronDown, Eye, Edit2
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Pagination } from '../components/ui/Pagination';
@@ -108,6 +108,15 @@ export const Produccion: React.FC = () => {
   const [nuevaRecetaDescripcion, setNuevaRecetaDescripcion] = useState('');
   const [nuevaRecetaDetalles, setNuevaRecetaDetalles] = useState<Array<{ insumoId: number; cantidadNecesaria: number; unidadMedida: string }>>([]);
 
+  // Modal 7.1: Editar Fórmula Maestra
+  const [showEditarRecetaModal, setShowEditarRecetaModal] = useState(false);
+  const [editingRecetaId, setEditingRecetaId] = useState<number | null>(null);
+  const [editRecetaNombre, setEditRecetaNombre] = useState('');
+  const [editRecetaProductoId, setEditRecetaProductoId] = useState<number>(1);
+  const [editRecetaRendimiento, setEditRecetaRendimiento] = useState<number>(50);
+  const [editRecetaDescripcion, setEditRecetaDescripcion] = useState('');
+  const [editRecetaDetalles, setEditRecetaDetalles] = useState<Array<{ insumoId: number; cantidadNecesaria: number; unidadMedida: string }>>([]);
+
   // Modal 8: + Nuevo Insumo
   const [showNuevoInsumoModal, setShowNuevoInsumoModal] = useState(false);
   const [nuevoInsumoNombre, setNuevoInsumoNombre] = useState('');
@@ -116,6 +125,17 @@ export const Produccion: React.FC = () => {
   const [nuevoInsumoStockMinimo, setNuevoInsumoStockMinimo] = useState<number>(5);
   const [nuevoInsumoCostoUnitario, setNuevoInsumoCostoUnitario] = useState<number>(1000);
   const [nuevoInsumoProveedor, setNuevoInsumoProveedor] = useState('');
+
+  // Modal 8.1: Editar Insumo
+  const [showEditarInsumoModal, setShowEditarInsumoModal] = useState(false);
+  const [editingInsumoId, setEditingInsumoId] = useState<number | null>(null);
+  const [editInsumoNombre, setEditInsumoNombre] = useState('');
+  const [editInsumoUnidad, setEditInsumoUnidad] = useState('Kg');
+  const [editInsumoStockActual, setEditInsumoStockActual] = useState<number>(0);
+  const [editInsumoStockMinimo, setEditInsumoStockMinimo] = useState<number>(5);
+  const [editInsumoCostoUnitario, setEditInsumoCostoUnitario] = useState<number>(1000);
+  const [editInsumoProveedor, setEditInsumoProveedor] = useState('');
+  const [editInsumoActivo, setEditInsumoActivo] = useState(true);
 
   const fetchData = async () => {
     setLoading(true);
@@ -247,6 +267,62 @@ export const Produccion: React.FC = () => {
     }
   };
 
+  // Manejador: Abrir Modal para Editar Fórmula Maestra
+  const handleAbrirEditarReceta = (rec: RecetaProduccion) => {
+    setEditingRecetaId(rec.id);
+    setEditRecetaNombre(rec.nombreReceta);
+    setEditRecetaProductoId(rec.productoId);
+    setEditRecetaRendimiento(rec.rendimientoUnidades || 50);
+    setEditRecetaDescripcion(rec.descripcion || '');
+    setEditRecetaDetalles(
+      (rec.detalles || []).map(d => ({
+        insumoId: d.insumoId,
+        cantidadNecesaria: d.cantidadNecesaria,
+        unidadMedida: d.unidadMedida
+      }))
+    );
+    setShowEditarRecetaModal(true);
+  };
+
+  // Manejador: Guardar Cambios de Fórmula Maestra Editada
+  const handleEditarReceta = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRecetaId) return;
+    if (!editRecetaNombre.trim()) {
+      showWarning('Por favor ingrese el nombre de la fórmula maestra.', 'Campo Requerido');
+      return;
+    }
+    if (editRecetaDetalles.length === 0) {
+      showWarning('Debe agregar al menos un ingrediente / insumo a la fórmula.', 'Ingredientes Requeridos');
+      return;
+    }
+    setIsSubmitting(true);
+    const res = await produccionService.updateReceta(editingRecetaId, {
+      productoId: editRecetaProductoId,
+      nombreReceta: editRecetaNombre,
+      descripcion: editRecetaDescripcion,
+      rendimientoUnidades: editRecetaRendimiento,
+      detalles: editRecetaDetalles.map(d => ({
+        insumoId: d.insumoId,
+        cantidadNecesaria: Number(d.cantidadNecesaria),
+        unidadMedida: d.unidadMedida
+      }))
+    });
+    setIsSubmitting(false);
+
+    if (res.success) {
+      setShowEditarRecetaModal(false);
+      setEditingRecetaId(null);
+      fetchData();
+      showSuccess('¡Fórmula maestra actualizada y recalculada exitosamente!', 'Fórmula Actualizada');
+      if (selectedRecetaVer && selectedRecetaVer.id === editingRecetaId && res.data) {
+        setSelectedRecetaVer(res.data);
+      }
+    } else {
+      showError(res.message || 'Error al actualizar fórmula maestra', 'Error al Editar');
+    }
+  };
+
   // Manejador: Crear Nuevo Insumo en Bodega
   const handleCrearInsumo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -277,6 +353,49 @@ export const Produccion: React.FC = () => {
       showSuccess('¡Insumo registrado exitosamente en el inventario de bodega!', 'Insumo Creado');
     } else {
       showError(res.message || 'Error al registrar insumo', 'Error de Insumo');
+    }
+  };
+
+  // Manejador: Abrir Modal para Editar Insumo
+  const handleAbrirEditarInsumo = (ins: Insumo) => {
+    setEditingInsumoId(ins.id);
+    setEditInsumoNombre(ins.nombre);
+    setEditInsumoUnidad(ins.unidadMedida);
+    setEditInsumoStockActual(ins.stockActual);
+    setEditInsumoStockMinimo(ins.stockMinimo);
+    setEditInsumoCostoUnitario(ins.costoUnitario);
+    setEditInsumoProveedor(ins.proveedorPrincipal || '');
+    setEditInsumoActivo(ins.activo ?? true);
+    setShowEditarInsumoModal(true);
+  };
+
+  // Manejador: Guardar Cambios de Insumo Editado
+  const handleEditarInsumo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingInsumoId) return;
+    if (!editInsumoNombre.trim()) {
+      showWarning('Por favor ingrese el nombre del insumo.', 'Campo Requerido');
+      return;
+    }
+    setIsSubmitting(true);
+    const res = await insumoService.update(editingInsumoId, {
+      nombre: editInsumoNombre.trim(),
+      unidadMedida: editInsumoUnidad,
+      stockActual: Number(editInsumoStockActual),
+      stockMinimo: Number(editInsumoStockMinimo),
+      costoUnitario: Number(editInsumoCostoUnitario),
+      proveedorPrincipal: editInsumoProveedor.trim() || undefined,
+      activo: editInsumoActivo
+    });
+    setIsSubmitting(false);
+
+    if (res.success) {
+      setShowEditarInsumoModal(false);
+      setEditingInsumoId(null);
+      fetchData();
+      showSuccess('¡Insumo actualizado exitosamente!', 'Insumo Guardado');
+    } else {
+      showError(res.message || 'Error al actualizar insumo', 'Error de Insumo');
     }
   };
 
@@ -1376,21 +1495,35 @@ export const Produccion: React.FC = () => {
                         {formatCurrency(rec.costoUnitarioEstimado || 250)}
                       </td>
                       <td className="py-3 px-4 text-right">
-                        {canCreateOrders && (
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={() => {
-                              setNuevoProductoId(rec.productoId);
-                              setNuevoRecetaId(rec.id);
-                              setNuevaCantidadProgramada(rec.rendimientoUnidades);
-                              setShowNuevaOrdenModal(true);
-                            }}
-                            className="bg-amber-800 hover:bg-amber-700 text-white font-bold text-[11px] cursor-pointer"
-                          >
-                            Programar
-                          </Button>
-                        )}
+                        <div className="flex items-center justify-end gap-1.5">
+                          {canCreateOrders && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              leftIcon={<Edit2 className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />}
+                              onClick={() => handleAbrirEditarReceta(rec)}
+                              className="border-amber-300 dark:border-stone-700 text-amber-800 dark:text-amber-300 text-[11px] font-bold shadow-none cursor-pointer hover:bg-amber-100/60 dark:hover:bg-stone-800"
+                              title="Editar Fórmula Maestra"
+                            >
+                              Editar
+                            </Button>
+                          )}
+                          {canCreateOrders && (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() => {
+                                setNuevoProductoId(rec.productoId);
+                                setNuevoRecetaId(rec.id);
+                                setNuevaCantidadProgramada(rec.rendimientoUnidades);
+                                setShowNuevaOrdenModal(true);
+                              }}
+                              className="bg-amber-800 hover:bg-amber-700 text-white font-bold text-[11px] cursor-pointer"
+                            >
+                              Programar
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -1434,6 +1567,18 @@ export const Produccion: React.FC = () => {
                   >
                     Ver ({rec.detalles?.length || 0})
                   </Button>
+
+                  {canCreateOrders && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      leftIcon={<Edit2 className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />}
+                      onClick={() => handleAbrirEditarReceta(rec)}
+                      className="flex-1 border-amber-300 dark:border-stone-700 text-amber-800 dark:text-amber-300 font-bold text-xs"
+                    >
+                      Editar
+                    </Button>
+                  )}
 
                   {canCreateOrders && (
                     <Button
@@ -1555,12 +1700,13 @@ export const Produccion: React.FC = () => {
                   <th className="py-3 px-4 text-center">Stock Mínimo</th>
                   <th className="py-3 px-4 text-right">Costo Unitario</th>
                   <th className="py-3 px-4 text-center">Estado de Existencias</th>
+                  <th className="py-3 px-4 text-right">Acción</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-amber-100/60 dark:divide-stone-800 text-xs">
                 {paginatedInsumos.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-stone-400 italic">
+                    <td colSpan={7} className="py-8 text-center text-stone-400 italic">
                       No se encontraron materias primas ni insumos.
                     </td>
                   </tr>
@@ -1599,6 +1745,20 @@ export const Produccion: React.FC = () => {
                           </span>
                         )}
                       </td>
+                      <td className="py-3 px-4 text-right">
+                        {canCreateOrders && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            leftIcon={<Edit2 className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />}
+                            onClick={() => handleAbrirEditarInsumo(ins)}
+                            className="border-amber-300 dark:border-stone-700 text-amber-800 dark:text-amber-300 text-[11px] font-bold shadow-none cursor-pointer hover:bg-amber-100/60 dark:hover:bg-stone-800"
+                            title="Editar Insumo"
+                          >
+                            Editar
+                          </Button>
+                        )}
+                      </td>
                     </tr>
                   ))
                 )}
@@ -1628,6 +1788,19 @@ export const Produccion: React.FC = () => {
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-stone-500">Stock Actual: <strong className={`font-mono ${ins.stockActual < 0 ? 'text-red-600' : 'text-stone-800 dark:text-stone-200'}`}>{ins.stockActual} {ins.unidadMedida}</strong></span>
                   <span className="text-stone-500">Mínimo: <strong className="font-mono">{ins.stockMinimo}</strong></span>
+                </div>
+                <div className="pt-2 border-t border-amber-100 dark:border-stone-800 flex justify-end">
+                  {canCreateOrders && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      leftIcon={<Edit2 className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />}
+                      onClick={() => handleAbrirEditarInsumo(ins)}
+                      className="border-amber-300 dark:border-stone-700 text-amber-800 dark:text-amber-300 font-bold text-xs"
+                    >
+                      Editar Insumo
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
@@ -1857,12 +2030,27 @@ export const Produccion: React.FC = () => {
               </div>
             </div>
 
-            <div className="pt-2 flex justify-end">
+            <div className="pt-2 flex justify-between items-center">
+              {canCreateOrders && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  leftIcon={<Edit2 className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />}
+                  onClick={() => {
+                    const r = selectedRecetaVer;
+                    setSelectedRecetaVer(null);
+                    handleAbrirEditarReceta(r);
+                  }}
+                  className="border-amber-300 dark:border-stone-700 text-amber-800 dark:text-amber-300 font-bold cursor-pointer hover:bg-amber-100/60 dark:hover:bg-stone-800"
+                >
+                  Editar esta Fórmula
+                </Button>
+              )}
               <Button
                 variant="primary"
                 size="sm"
                 onClick={() => setSelectedRecetaVer(null)}
-                className="bg-amber-800 hover:bg-amber-700 text-white font-bold px-6 cursor-pointer"
+                className="bg-amber-800 hover:bg-amber-700 text-white font-bold px-6 cursor-pointer ml-auto"
               >
                 Cerrar
               </Button>
@@ -2039,6 +2227,215 @@ export const Produccion: React.FC = () => {
         </div>
       )}
 
+      {/* Modal: Editar Fórmula Maestra */}
+      {showEditarRecetaModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-stone-900 border border-amber-300 dark:border-stone-700 rounded-3xl p-6 max-w-2xl w-full space-y-4 shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-200 dark:border-stone-800">
+              <h3 className="font-heading font-extrabold text-lg text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-amber-600" /> Editar Fórmula Maestra <span className="font-mono text-sm text-stone-400">#F-{editingRecetaId}</span>
+              </h3>
+              <button 
+                onClick={() => {
+                  setShowEditarRecetaModal(false);
+                  setEditingRecetaId(null);
+                }} 
+                className="text-stone-400 hover:text-stone-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditarReceta} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-stone-700 dark:text-stone-300 uppercase">Nombre de la Fórmula</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. Pan Francés Tradicional x50"
+                    value={editRecetaNombre}
+                    onChange={(e) => setEditRecetaNombre(e.target.value)}
+                    className="w-full bg-stone-50 dark:bg-stone-950 p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 font-medium"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-stone-700 dark:text-stone-300 uppercase">Producto Base Asignado</label>
+                  <select
+                    value={editRecetaProductoId}
+                    onChange={(e) => setEditRecetaProductoId(Number(e.target.value))}
+                    className="w-full bg-stone-50 dark:bg-stone-950 p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 font-bold"
+                  >
+                    {productos.map(p => (
+                      <option key={p.id} value={p.id}>{p.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-stone-700 dark:text-stone-300 uppercase">Rendimiento / Cantidad Esperada de Salida</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={editRecetaRendimiento}
+                    onChange={(e) => setEditRecetaRendimiento(Math.max(1, Number(e.target.value)))}
+                    className="w-full bg-stone-50 dark:bg-stone-950 p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 font-mono font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-stone-700 dark:text-stone-300 uppercase">Descripción / Observaciones</label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Tiempo de amasado 15 min, horneado 200°C"
+                    value={editRecetaDescripcion}
+                    onChange={(e) => setEditRecetaDescripcion(e.target.value)}
+                    className="w-full bg-stone-50 dark:bg-stone-950 p-2.5 rounded-xl border border-stone-300 dark:border-stone-700"
+                  />
+                </div>
+              </div>
+
+              {/* Banner de Costeo en Tiempo Real */}
+              {(() => {
+                const totalCost = editRecetaDetalles.reduce((acc, d) => {
+                  const ins = insumos.find(i => i.id === d.insumoId);
+                  return acc + (d.cantidadNecesaria * (ins?.costoUnitario || 0));
+                }, 0);
+                const unitCost = editRecetaRendimiento > 0 ? (totalCost / editRecetaRendimiento) : 0;
+                return (
+                  <div className="p-3 bg-amber-50/70 dark:bg-stone-950 rounded-2xl border border-amber-200 dark:border-stone-800 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 text-stone-600 dark:text-stone-300">
+                      <Scale className="w-4 h-4 text-amber-600" />
+                      <span className="font-bold">Cálculo de Costo en Vivo:</span>
+                    </div>
+                    <div className="flex items-center gap-3 font-mono text-xs">
+                      <span>Total Insumos: <strong className="text-amber-800 dark:text-amber-300">{formatCurrency(totalCost)}</strong></span>
+                      <span className="text-stone-300 dark:text-stone-700">|</span>
+                      <span>Costo Estimado / Unidad: <strong className="text-emerald-700 dark:text-emerald-400 font-black">{formatCurrency(unitCost)}</strong></span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Ingredientes Dinámicos */}
+              <div className="space-y-2 pt-2 border-t border-stone-200 dark:border-stone-800">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-stone-700 dark:text-stone-300 uppercase">Ingredientes e Insumos Requeridos ({editRecetaDetalles.length})</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    leftIcon={<Plus className="w-3.5 h-3.5" />}
+                    onClick={() => {
+                      if (insumos.length > 0) {
+                        setEditRecetaDetalles([
+                          ...editRecetaDetalles,
+                          { insumoId: insumos[0].id, cantidadNecesaria: 1, unidadMedida: insumos[0].unidadMedida }
+                        ]);
+                      }
+                    }}
+                    className="text-amber-800 dark:text-amber-300 border-amber-400 dark:border-stone-700 text-[11px] cursor-pointer"
+                  >
+                    Agregar Insumo
+                  </Button>
+                </div>
+
+                {editRecetaDetalles.length === 0 ? (
+                  <p className="text-stone-400 italic text-[11px] py-2">Haga clic en "+ Agregar Insumo" para especificar los insumos de la fórmula.</p>
+                ) : (
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {editRecetaDetalles.map((det, index) => {
+                      const insumoActual = insumos.find(i => i.id === det.insumoId);
+                      const subtotal = det.cantidadNecesaria * (insumoActual?.costoUnitario || 0);
+                      return (
+                        <div key={index} className="flex items-center gap-2 bg-stone-50 dark:bg-stone-950 p-2 rounded-xl border border-stone-200 dark:border-stone-800">
+                          <select
+                            value={det.insumoId}
+                            onChange={(e) => {
+                              const insId = Number(e.target.value);
+                              const found = insumos.find(i => i.id === insId);
+                              const updated = [...editRecetaDetalles];
+                              updated[index].insumoId = insId;
+                              if (found) updated[index].unidadMedida = found.unidadMedida;
+                              setEditRecetaDetalles(updated);
+                            }}
+                            className="flex-1 bg-white dark:bg-stone-900 p-1.5 rounded-lg border border-stone-300 dark:border-stone-700 text-xs font-bold"
+                          >
+                            {insumos.map(i => (
+                              <option key={i.id} value={i.id}>{i.nombre} ({i.unidadMedida}) - {formatCurrency(i.costoUnitario)}</option>
+                            ))}
+                          </select>
+
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0.001"
+                              value={det.cantidadNecesaria}
+                              onChange={(e) => {
+                                const updated = [...editRecetaDetalles];
+                                updated[index].cantidadNecesaria = Number(e.target.value);
+                                setEditRecetaDetalles(updated);
+                              }}
+                              className="w-24 bg-white dark:bg-stone-900 p-1.5 rounded-lg border border-stone-300 dark:border-stone-700 text-center font-mono font-bold text-xs"
+                              placeholder="Cantidad"
+                            />
+                            <span className="w-12 text-center text-[10px] text-stone-500 font-bold">{det.unidadMedida}</span>
+                          </div>
+
+                          <span className="text-[10px] font-mono font-bold text-stone-500 hidden sm:inline-block w-20 text-right">
+                            {formatCurrency(subtotal)}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditRecetaDetalles(editRecetaDetalles.filter((_, i) => i !== index));
+                            }}
+                            className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-stone-800 rounded-lg cursor-pointer"
+                            title="Quitar ingrediente"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  className="flex-1 cursor-pointer"
+                  onClick={() => {
+                    setShowEditarRecetaModal(false);
+                    setEditingRecetaId(null);
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  className="flex-1 bg-amber-800 hover:bg-amber-700 text-white font-bold cursor-pointer"
+                  isLoading={isSubmitting}
+                >
+                  Guardar Cambios
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Modal: + Nuevo Insumo */}
       {showNuevoInsumoModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
@@ -2150,6 +2547,147 @@ export const Produccion: React.FC = () => {
                   isLoading={isSubmitting}
                 >
                   Guardar Insumo
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Editar Insumo */}
+      {showEditarInsumoModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-stone-900 border border-amber-300 dark:border-stone-700 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl animate-fade-in">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-200 dark:border-stone-800">
+              <h3 className="font-heading font-extrabold text-lg text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-amber-600" /> Editar Insumo / Materia Prima <span className="font-mono text-sm text-stone-400">#{editingInsumoId}</span>
+              </h3>
+              <button 
+                onClick={() => {
+                  setShowEditarInsumoModal(false);
+                  setEditingInsumoId(null);
+                }} 
+                className="text-stone-400 hover:text-stone-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditarInsumo} className="space-y-3 text-xs">
+              <div className="space-y-1">
+                <label className="font-bold text-stone-700 dark:text-stone-300 uppercase">Nombre de la Materia Prima / Insumo</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. Harina de Trigo Especial, Levadura Fresca..."
+                  value={editInsumoNombre}
+                  onChange={(e) => setEditInsumoNombre(e.target.value)}
+                  className="w-full bg-stone-50 dark:bg-stone-950 p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 font-bold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-stone-700 dark:text-stone-300 uppercase">Unidad de Medida</label>
+                  <select
+                    value={editInsumoUnidad}
+                    onChange={(e) => setEditInsumoUnidad(e.target.value)}
+                    className="w-full bg-stone-50 dark:bg-stone-950 p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 font-bold"
+                  >
+                    <option value="Kg">Kilogramos (Kg)</option>
+                    <option value="Gramos">Gramos (Gr)</option>
+                    <option value="Litros">Litros (Lt)</option>
+                    <option value="Mililitros">Mililitros (Ml)</option>
+                    <option value="Unidades">Unidades (Un)</option>
+                    <option value="Bulto">Bulto (50 Kg)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-stone-700 dark:text-stone-300 uppercase">Costo Unitario ($)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    required
+                    value={editInsumoCostoUnitario}
+                    onChange={(e) => setEditInsumoCostoUnitario(Number(e.target.value))}
+                    className="w-full bg-stone-50 dark:bg-stone-950 p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 font-mono font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-stone-700 dark:text-stone-300 uppercase">Stock Actual</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={editInsumoStockActual}
+                    onChange={(e) => setEditInsumoStockActual(Number(e.target.value))}
+                    className="w-full bg-stone-50 dark:bg-stone-950 p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 font-mono font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-stone-700 dark:text-stone-300 uppercase">Stock Mínimo (Alerta)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    value={editInsumoStockMinimo}
+                    onChange={(e) => setEditInsumoStockMinimo(Number(e.target.value))}
+                    className="w-full bg-stone-50 dark:bg-stone-950 p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-stone-700 dark:text-stone-300 uppercase">Proveedor Principal (Opcional)</label>
+                <input
+                  type="text"
+                  placeholder="Ej. Harinera del Santander..."
+                  value={editInsumoProveedor}
+                  onChange={(e) => setEditInsumoProveedor(e.target.value)}
+                  className="w-full bg-stone-50 dark:bg-stone-950 p-2.5 rounded-xl border border-stone-300 dark:border-stone-700"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <label className="flex items-center gap-2 cursor-pointer font-bold text-stone-700 dark:text-stone-300">
+                  <input
+                    type="checkbox"
+                    checked={editInsumoActivo}
+                    onChange={(e) => setEditInsumoActivo(e.target.checked)}
+                    className="rounded text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer"
+                  />
+                  <span>Insumo Activo en Bodega</span>
+                </label>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  className="flex-1 cursor-pointer"
+                  onClick={() => {
+                    setShowEditarInsumoModal(false);
+                    setEditingInsumoId(null);
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  className="flex-1 bg-amber-800 hover:bg-amber-700 text-white font-bold cursor-pointer"
+                  isLoading={isSubmitting}
+                >
+                  Guardar Cambios
                 </Button>
               </div>
             </form>
