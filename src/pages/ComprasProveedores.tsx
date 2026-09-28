@@ -430,7 +430,7 @@ export const ComprasProveedores: React.FC = () => {
                   <tr key={c.id} className="hover:bg-teal-50/40 dark:hover:bg-stone-800/40 transition-colors">
                     <td className="py-3 px-4">
                       <p className="font-mono font-bold text-teal-700 dark:text-teal-400">{c.numeroFactura}</p>
-                      <p className="text-[10px] text-stone-500">{new Date(c.fechaCompra).toLocaleDateString('es-CO')}</p>
+                      <p className="text-[10px] text-stone-500">{new Date(c.fechaCompra).toLocaleDateString('es-CO')} {new Date(c.fechaCompra).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</p>
                     </td>
                     <td className="py-3 px-4 font-bold text-stone-900 dark:text-stone-100">
                       {c.proveedorNombre}

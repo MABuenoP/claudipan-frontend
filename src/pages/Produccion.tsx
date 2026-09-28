@@ -904,7 +904,7 @@ export const Produccion: React.FC = () => {
                     <tr key={ord.id} className="hover:bg-amber-50/40 dark:hover:bg-stone-800/40 transition-colors">
                       <td className="py-3 px-4">
                         <p className="font-mono font-bold text-amber-700 dark:text-amber-400">{ord.codigoOrden}</p>
-                        <p className="text-[10px] text-stone-400">{new Date(ord.fechaOrden).toLocaleDateString('es-CO')}</p>
+                        <p className="text-[10px] text-stone-400">{new Date(ord.fechaOrden).toLocaleDateString('es-CO')} {new Date(ord.fechaOrden).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</p>
                       </td>
                       <td className="py-3 px-4 font-bold text-stone-900 dark:text-stone-100">
                         {ord.productoNombre}
@@ -1179,7 +1179,7 @@ export const Produccion: React.FC = () => {
                     <tr key={ord.id} className="hover:bg-amber-50/40 dark:hover:bg-stone-800/40 transition-colors">
                       <td className="py-3 px-4">
                         <p className="font-mono font-bold text-teal-700 dark:text-teal-400">{ord.codigoOrden}</p>
-                        <p className="text-[10px] text-stone-400">{new Date(ord.fechaOrden).toLocaleDateString('es-CO')}</p>
+                        <p className="text-[10px] text-stone-400">{new Date(ord.fechaOrden).toLocaleDateString('es-CO')} {new Date(ord.fechaOrden).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</p>
                       </td>
                       <td className="py-3 px-4 font-bold text-stone-900 dark:text-stone-100">
                         {ord.productoNombre}

@@ -362,7 +362,7 @@ export const BajasMermas: React.FC = () => {
                 <tr key={b.id} className="hover:bg-red-50/40 dark:hover:bg-stone-800/40 transition-colors">
                   <td className="py-3 px-4">
                     <p className="font-mono font-bold text-red-700 dark:text-red-400">BAJA-#{b.id}</p>
-                    <p className="text-[10px] text-stone-500">{new Date(b.fechaBaja).toLocaleDateString('es-CO')}</p>
+                    <p className="text-[10px] text-stone-500">{new Date(b.fechaBaja).toLocaleDateString('es-CO')} {new Date(b.fechaBaja).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</p>
                   </td>
                   <td className="py-3 px-4 font-bold text-stone-900 dark:text-stone-100">
                     {b.productoNombre}

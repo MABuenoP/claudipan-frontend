@@ -57,6 +57,86 @@ export interface MisDeudasResumen {
   transacciones: TransaccionDeuda[];
 }
 
+export interface AsientoContable {
+  id: number;
+  fecha: string;
+  comprobante: string;
+  tipoOperacion: string;
+  tercero: string;
+  detalle: string;
+  cuentaCodigo: string;
+  cuentaNombre: string;
+  debito: number;
+  credito: number;
+}
+
+export interface CuentaMayor {
+  codigo: string;
+  nombre: string;
+  clase: string;
+  naturaleza: string;
+  totalDebito: number;
+  totalCredito: number;
+  saldoFinal: number;
+}
+
+export interface LibroVentaItem {
+  pedidoId: number;
+  codigoPedido: string;
+  fecha: string;
+  cliente: string;
+  tipoPago: string;
+  estado: string;
+  total: number;
+}
+
+export interface LibroCarteraItem {
+  usuarioId: number;
+  nombre: string;
+  cedula: string;
+  telefono: string;
+  limiteCredito: number;
+  deudaActual: number;
+  cupoDisponible: number;
+  porcentajeUso: number;
+  totalAbonos: number;
+  ultimoMovimiento?: string;
+}
+
+export interface LibroCompraItem {
+  compraId: number;
+  factura: string;
+  proveedor: string;
+  fecha: string;
+  insumo: string;
+  cantidad: number;
+  precioUnitario: number;
+  total: number;
+}
+
+export interface LibroBajaItem {
+  bajaId: number;
+  fecha: string;
+  producto: string;
+  cantidad: number;
+  costoUnitario: number;
+  costoPerdidaTotal: number;
+  motivo: string;
+}
+
+export interface LibrosContables {
+  libroDiario: AsientoContable[];
+  libroMayor: CuentaMayor[];
+  libroVentas: LibroVentaItem[];
+  libroCartera: LibroCarteraItem[];
+  libroCompras: LibroCompraItem[];
+  libroBajas: LibroBajaItem[];
+  estadoResultados: EstadoResultados;
+  totalDebitosDiario: number;
+  totalCreditosDiario: number;
+  estaCuadrado: boolean;
+}
+
 export const contabilidadService = {
   getResumen: async (): Promise<ApiResponse<ResumenContable>> => {
     return await api.get<ResumenContable>('/contabilidad/resumen');
@@ -84,5 +164,13 @@ export const contabilidadService = {
 
   getMisDeudas: async (): Promise<ApiResponse<MisDeudasResumen>> => {
     return await api.get<MisDeudasResumen>('/contabilidad/mis-deudas');
+  },
+
+  getLibrosContables: async (fechaInicio?: string, fechaFin?: string): Promise<ApiResponse<LibrosContables>> => {
+    const q = new URLSearchParams();
+    if (fechaInicio) q.append('fechaInicio', fechaInicio);
+    if (fechaFin) q.append('fechaFin', fechaFin);
+    const qs = q.toString();
+    return await api.get<LibrosContables>(`/contabilidad/libros-contables${qs ? `?${qs}` : ''}`);
   },
 };

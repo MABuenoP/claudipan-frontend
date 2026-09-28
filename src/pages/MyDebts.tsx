@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  CreditCard, DollarSign, ArrowUpRight, ArrowDownLeft, ShieldCheck, 
-  AlertCircle, RefreshCw, PlusCircle, QrCode, Camera, Check, X, 
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import {
+  CreditCard, DollarSign, ArrowUpRight, ArrowDownLeft, ShieldCheck,
+  AlertCircle, RefreshCw, PlusCircle, QrCode, Camera, Check, X,
   CheckCircle2, ShoppingBag, Calendar, Eye, PackageCheck, Receipt,
-  Search, ChevronDown
+  Search, ChevronDown, UserCheck, Users, Filter, CheckCheck
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { contabilidadService, MisDeudasResumen } from '../services/contabilidadService';
 import { pedidoService, TransaccionDeuda, Pedido } from '../services/pedidoService';
+import { authService, User } from '../services/authService';
 import { Pagination } from '../components/ui/Pagination';
 import { formatCurrency } from '../utils/helpers';
 import { Button } from '../components/ui/Button';
@@ -25,10 +26,10 @@ export const MyDebts: React.FC = () => {
   const [transacciones, setTransacciones] = useState<TransaccionDeuda[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Tab State: 'compras' (all orders: efectivo, nequi, fiado) | 'cartera' (debt charges & abonos)
   const [activeTab, setActiveTab] = useState<'compras' | 'cartera'>('compras');
-  
+
   // Search & Mobile view states
   const [searchComprasInput, setSearchComprasInput] = useState('');
   const [searchComprasTerm, setSearchComprasTerm] = useState('');
@@ -45,8 +46,14 @@ export const MyDebts: React.FC = () => {
   // Selected Order Detail Modal
   const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
 
-  // Abono modal state
+  // Abono modal state & client filter
   const [isAbonoModalOpen, setIsAbonoModalOpen] = useState(false);
+  const [clientes, setClientes] = useState<User[]>([]);
+  const [loadingClientes, setLoadingClientes] = useState(false);
+  const [clienteSearch, setClienteSearch] = useState('');
+  const [filterSoloConDeuda, setFilterSoloConDeuda] = useState(true);
+  const [selectedClient, setSelectedClient] = useState<User | null>(null);
+
   const [abonoMonto, setAbonoMonto] = useState<number>(0);
   const [abonoMetodo, setAbonoMetodo] = useState<'Efectivo' | 'Nequi'>('Efectivo');
   const [abonoConcepto, setAbonoConcepto] = useState('Abono a saldo de fiado');
@@ -57,10 +64,69 @@ export const MyDebts: React.FC = () => {
 
   const abonoFileInputRef = useRef<HTMLInputElement>(null);
 
+  const fetchClientes = async () => {
+    if (!canAbonar) return;
+    setLoadingClientes(true);
+    try {
+      const res = await authService.getAllUsers();
+      if (res.success && res.data) {
+        const list = res.data.filter((u: any) => u.activo);
+        list.sort((a: any, b: any) => (b.deudaActual || 0) - (a.deudaActual || 0));
+        setClientes(list);
+        if (selectedClient) {
+          const updated = list.find((u: any) => u.id === selectedClient.id);
+          if (updated) setSelectedClient(updated);
+        }
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingClientes(false);
+    }
+  };
+
+  const filteredClientes = useMemo(() => {
+    const q = clienteSearch.toLowerCase().trim();
+    return clientes.filter((c) => {
+      const matchesSearch = !q ||
+        (c.nombre && c.nombre.toLowerCase().includes(q)) ||
+        (c.primerNombre && c.primerNombre.toLowerCase().includes(q)) ||
+        (c.primerApellido && c.primerApellido.toLowerCase().includes(q)) ||
+        (c.cedula && c.cedula.toLowerCase().includes(q)) ||
+        (c.email && c.email.toLowerCase().includes(q));
+
+      const matchesDeuda = filterSoloConDeuda ? ((c.deudaActual || 0) > 0) : true;
+      return matchesSearch && matchesDeuda;
+    });
+  }, [clientes, clienteSearch, filterSoloConDeuda]);
+
+  const handleSelectClient = (c: User) => {
+    setSelectedClient(c);
+    setAbonoMonto((c.deudaActual || 0) > 0 ? c.deudaActual : 10000);
+    setAbonoConcepto(`Abono a saldo de fiado - ${c.nombre || c.email}`);
+  };
+
+  const handleOpenAbonoModal = async () => {
+    setAbonoMessage(null);
+    setIsAbonoModalOpen(true);
+    await fetchClientes();
+  };
+
+  useEffect(() => {
+    if (isAbonoModalOpen && clientes.length > 0 && !selectedClient) {
+      const withDebt = clientes.find(c => (c.deudaActual || 0) > 0);
+      if (withDebt) {
+        handleSelectClient(withDebt);
+      } else {
+        handleSelectClient(clientes[0]);
+      }
+    }
+  }, [isAbonoModalOpen, clientes]);
+
   const fetchData = async () => {
     setLoading(true);
     await refreshProfile();
-    
+
     const res = await contabilidadService.getMisDeudas();
     if (res.success && res.data) {
       setResumen(res.data);
@@ -101,9 +167,14 @@ export const MyDebts: React.FC = () => {
     e.preventDefault();
     setAbonoMessage(null);
 
-    if (!user) return;
+    const targetUser = selectedClient || user;
+    if (!targetUser) {
+      setAbonoMessage({ type: 'error', text: 'Por favor selecciona un cliente para registrar el abono.' });
+      return;
+    }
+
     if (abonoMonto <= 0) {
-      setAbonoMessage({ type: 'error', text: 'Ingresa un monto válido para el abono.' });
+      setAbonoMessage({ type: 'error', text: 'Ingresa un monto válido mayor a 0 para el abono.' });
       return;
     }
 
@@ -116,7 +187,7 @@ export const MyDebts: React.FC = () => {
 
     try {
       const res = await pedidoService.registrarAbono({
-        usuarioId: user.id,
+        usuarioId: targetUser.id,
         monto: abonoMonto,
         metodoPago: abonoMetodo,
         concepto: abonoConcepto,
@@ -125,16 +196,33 @@ export const MyDebts: React.FC = () => {
       });
 
       if (res.success) {
-        setAbonoMessage({ type: 'success', text: res.message || 'Abono registrado con éxito.' });
+        const nuevaDeuda = Math.max(0, (targetUser.deudaActual || 0) - abonoMonto);
+        const nuevoCupo = (targetUser.limiteCredito || 0) - nuevaDeuda;
+
+        // Actualizar el cliente seleccionado en el estado local de inmediato
+        if (selectedClient) {
+          setSelectedClient({
+            ...selectedClient,
+            deudaActual: nuevaDeuda
+          });
+        }
+
+        await fetchClientes();
         await refreshProfile();
         await fetchData();
+
+        setAbonoMessage({
+          type: 'success',
+          text: `¡Abono de ${formatCurrency(abonoMonto)} registrado con éxito para ${targetUser.nombre}! Deuda restante: ${formatCurrency(nuevaDeuda)} | Cupo disponible restablecido: ${formatCurrency(nuevoCupo)}.`
+        });
+
         setTimeout(() => {
           setIsAbonoModalOpen(false);
           setAbonoMonto(0);
           setAbonoReferencia('');
           setAbonoComprobanteBase64(undefined);
           setAbonoMessage(null);
-        }, 1500);
+        }, 2200);
       } else {
         setAbonoMessage({ type: 'error', text: res.message || 'No se pudo registrar el abono.' });
       }
@@ -170,7 +258,7 @@ export const MyDebts: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#FFFBEB]/60 dark:bg-stone-950 text-stone-900 dark:text-stone-100 py-10 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
       <div className="max-w-6xl mx-auto space-y-8">
-        
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -181,7 +269,7 @@ export const MyDebts: React.FC = () => {
               Consulta tus compras en efectivo, Nequi y tu saldo de fiado con abonos en línea.
             </p>
           </div>
-          
+
           <div className="flex items-center gap-3">
             <button
               onClick={fetchData}
@@ -192,14 +280,11 @@ export const MyDebts: React.FC = () => {
             </button>
             {canAbonar && (
               <button
-                onClick={() => {
-                  setAbonoMonto(deudaActual > 0 ? deudaActual : 10000);
-                  setIsAbonoModalOpen(true);
-                }}
+                onClick={handleOpenAbonoModal}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-amber-800 hover:bg-amber-700 text-white text-xs font-extrabold shadow-lg shadow-amber-800/20 transition-all cursor-pointer"
               >
                 <PlusCircle className="w-4 h-4" />
-                Abonar a Mi Deuda
+                Abonos a Deuda
               </button>
             )}
           </div>
@@ -291,11 +376,10 @@ export const MyDebts: React.FC = () => {
         <div className="flex items-center gap-3 border-b border-amber-200/80 dark:border-stone-800 pb-2">
           <button
             onClick={() => setActiveTab('compras')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-extrabold transition-all ${
-              activeTab === 'compras'
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-extrabold transition-all ${activeTab === 'compras'
                 ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/20'
                 : 'bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300 border border-amber-200/80 dark:border-stone-800 hover:border-amber-500'
-            }`}
+              }`}
           >
             <ShoppingBag className="w-4 h-4" />
             <span>Listado de Mis Compras ({pedidos.length})</span>
@@ -303,11 +387,10 @@ export const MyDebts: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('cartera')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-extrabold transition-all ${
-              activeTab === 'cartera'
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-extrabold transition-all ${activeTab === 'cartera'
                 ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/20'
                 : 'bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300 border border-amber-200/80 dark:border-stone-800 hover:border-amber-500'
-            }`}
+              }`}
           >
             <Receipt className="w-4 h-4" />
             <span>Movimientos de Cartera y Fiado ({transacciones.length})</span>
@@ -328,7 +411,7 @@ export const MyDebts: React.FC = () => {
               </div>
 
               {/* Top Bar: Search on Left */}
-              <form 
+              <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   setSearchComprasTerm(searchComprasInput);
@@ -438,13 +521,12 @@ export const MyDebts: React.FC = () => {
                               {new Date(p.fechaPedido).toLocaleString('es-CO')}
                             </td>
                             <td className="py-4 px-6 text-xs">
-                              <span className={`px-2.5 py-1 rounded-xl font-bold border ${
-                                p.estado === 'Entregado' || p.estado === 'Completado'
+                              <span className={`px-2.5 py-1 rounded-xl font-bold border ${p.estado === 'Entregado' || p.estado === 'Completado'
                                   ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
                                   : p.estado === 'Cancelado'
-                                  ? 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20'
-                                  : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20'
-                              }`}>
+                                    ? 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20'
+                                    : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20'
+                                }`}>
                                 {p.estado}
                               </span>
                             </td>
@@ -483,9 +565,8 @@ export const MyDebts: React.FC = () => {
                     <div key={p.id} className="p-4 rounded-2xl bg-amber-50/40 dark:bg-stone-950 border border-amber-200/60 dark:border-stone-800 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-stone-900 dark:text-stone-100 text-sm">Pedido #{p.id}</span>
-                        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${
-                          p.estado === 'Entregado' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${p.estado === 'Entregado' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                          }`}>
                           {p.estado}
                         </span>
                       </div>
@@ -538,7 +619,7 @@ export const MyDebts: React.FC = () => {
 
               {/* Top Bar: Search on Left + Action on Right */}
               <div className="flex items-center gap-3">
-                <form 
+                <form
                   onSubmit={(e) => {
                     e.preventDefault();
                     setSearchCarteraTerm(searchCarteraInput);
@@ -581,15 +662,12 @@ export const MyDebts: React.FC = () => {
                   </Button>
                 </form>
 
-                {canAbonar && (user?.deudaActual || 0) > 0 && (
+                {canAbonar && (
                   <button
-                    onClick={() => {
-                      setAbonoMonto(user?.deudaActual || 0);
-                      setIsAbonoModalOpen(true);
-                    }}
-                    className="text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline whitespace-nowrap"
+                    onClick={handleOpenAbonoModal}
+                    className="text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline whitespace-nowrap cursor-pointer"
                   >
-                    + Abonar ahora
+                    + Abonar a Deuda
                   </button>
                 )}
               </div>
@@ -646,11 +724,10 @@ export const MyDebts: React.FC = () => {
                             </td>
                             <td className="py-4 px-6 text-stone-600 dark:text-stone-400 text-xs font-semibold">
                               {t.metodoPagoAbono ? (
-                                <span className={`px-2 py-0.5 rounded-lg border ${
-                                  t.metodoPagoAbono === 'Nequi' 
+                                <span className={`px-2 py-0.5 rounded-lg border ${t.metodoPagoAbono === 'Nequi'
                                     ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/30'
                                     : 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border-stone-200 dark:border-stone-700'
-                                }`}>
+                                  }`}>
                                   {t.metodoPagoAbono}
                                 </span>
                               ) : isCargo ? (
@@ -662,9 +739,8 @@ export const MyDebts: React.FC = () => {
                             <td className="py-4 px-6 text-stone-500 dark:text-stone-400 text-xs">
                               {new Date(t.fecha).toLocaleString('es-CO')}
                             </td>
-                            <td className={`py-4 px-6 text-right font-extrabold ${
-                              isCargo ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'
-                            }`}>
+                            <td className={`py-4 px-6 text-right font-extrabold ${isCargo ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'
+                              }`}>
                               {isCargo ? '+' : '-'}{formatCurrency(t.monto)}
                             </td>
                           </tr>
@@ -797,235 +873,415 @@ export const MyDebts: React.FC = () => {
       )}
 
       {/* MODAL: REALIZAR ABONO (Solo Vendedor, Gerente y Administrador) */}
-      {canAbonar && isAbonoModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-stone-900 w-full max-w-lg rounded-3xl border border-amber-200 dark:border-stone-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            
-            {/* Header */}
-            <div className="p-6 bg-gradient-to-r from-emerald-500/10 via-emerald-400/5 to-transparent border-b border-amber-200/80 dark:border-stone-800 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 flex items-center justify-center font-bold">
-                  <DollarSign className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-heading font-extrabold text-stone-900 dark:text-stone-100">
-                    Realizar Abono a Mi Deuda
-                  </h3>
-                  <p className="text-xs text-stone-500 dark:text-stone-400">
-                    Deuda actual: <strong className="text-red-600">{formatCurrency(user?.deudaActual || 0)}</strong>
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsAbonoModalOpen(false)}
-                className="p-1.5 rounded-xl text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {canAbonar && isAbonoModalOpen && (() => {
+        const activeClient = selectedClient || user;
+        const targetDeuda = activeClient?.deudaActual || 0;
+        const targetLimite = activeClient?.limiteCredito || 0;
+        const targetCupo = Math.max(0, targetLimite - targetDeuda);
 
-            {/* Form Body */}
-            <form onSubmit={handleRegistrarAbono} className="p-6 overflow-y-auto space-y-4">
-              {abonoMessage && (
-                <div className={`p-4 rounded-2xl border text-xs font-semibold flex items-center gap-3 ${
-                  abonoMessage.type === 'success'
-                    ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30'
-                    : 'bg-red-500/15 text-red-800 dark:text-red-300 border-red-500/30'
-                }`}>
-                  {abonoMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
-                  <span>{abonoMessage.text}</span>
-                </div>
-              )}
+        const proyectadaDeuda = Math.max(0, targetDeuda - (abonoMonto || 0));
+        const proyectadoCupo = Math.max(0, targetLimite - proyectadaDeuda);
+        const clientesConDeudaCount = clientes.filter(c => (c.deudaActual || 0) > 0).length;
 
-              {/* Quick Amount Chips */}
-              <div>
-                <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 uppercase tracking-wider mb-2">
-                  Selecciona o digita el Monto del Abono ($) *
-                </label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {[10000, 20000, 50000, 100000].map((amt) => (
-                    <button
-                      key={amt}
-                      type="button"
-                      onClick={() => setAbonoMonto(amt)}
-                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors ${
-                        abonoMonto === amt
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                          : 'bg-stone-50 dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:border-emerald-500'
-                      }`}
-                    >
-                      {formatCurrency(amt)}
-                    </button>
-                  ))}
-                  {(user?.deudaActual || 0) > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setAbonoMonto(user?.deudaActual || 0)}
-                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors ${
-                        abonoMonto === (user?.deudaActual || 0)
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                          : 'bg-amber-500/10 border-amber-500/30 text-amber-800 dark:text-amber-300 hover:bg-amber-500/20'
-                      }`}
-                    >
-                      Pagar Total ({formatCurrency(user?.deudaActual || 0)})
-                    </button>
-                  )}
-                </div>
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="bg-white dark:bg-stone-900 w-full max-w-2xl rounded-3xl border border-amber-200 dark:border-stone-800 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
 
-                <div className="relative">
-                  <span className="absolute left-3.5 top-3 text-stone-400 font-bold">$</span>
-                  <input
-                    type="number"
-                    required
-                    min={100}
-                    value={abonoMonto || ''}
-                    onChange={(e) => setAbonoMonto(parseFloat(e.target.value) || 0)}
-                    placeholder="Digita el valor..."
-                    className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-                  />
-                </div>
-              </div>
-
-              {/* Payment Method Selector */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 uppercase tracking-wider">
-                  Método de Pago del Abono
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setAbonoMetodo('Efectivo')}
-                    className={`p-3 rounded-2xl border text-left flex items-center gap-3 transition-all ${
-                      abonoMetodo === 'Efectivo'
-                        ? 'bg-emerald-500/15 border-emerald-500 text-emerald-900 dark:text-emerald-200 shadow-sm'
-                        : 'bg-stone-50 dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400'
-                    }`}
-                  >
-                    <DollarSign className="w-5 h-5 text-emerald-600" />
-                    <div>
-                      <p className="text-xs font-extrabold uppercase">Contado / Efectivo</p>
-                      <p className="text-[10px] text-stone-500">Pago en caja de la panadería</p>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setAbonoMetodo('Nequi')}
-                    className={`p-3 rounded-2xl border text-left flex items-center gap-3 transition-all ${
-                      abonoMetodo === 'Nequi'
-                        ? 'bg-indigo-500/15 border-indigo-500 text-indigo-900 dark:text-indigo-200 shadow-sm'
-                        : 'bg-stone-50 dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400'
-                    }`}
-                  >
-                    <QrCode className="w-5 h-5 text-indigo-600" />
-                    <div>
-                      <p className="text-xs font-extrabold uppercase">Nequi (QR / Transf.)</p>
-                      <p className="text-[10px] text-stone-500">Transferencia bancaria</p>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* NEQUI INSTRUCTIONS & VOUCHER UPLOAD */}
-              {abonoMetodo === 'Nequi' && (
-                <div className="p-4 rounded-2xl bg-indigo-50/80 dark:bg-stone-950 border border-indigo-200 dark:border-indigo-900/60 space-y-3 animate-fade-in">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-bold text-indigo-950 dark:text-indigo-200">
-                        Número Nequi Claudipan: <strong className="font-mono text-sm">312 456 7890</strong>
-                      </p>
-                      <p className="text-[11px] text-stone-500">
-                        Titular: Panadería Claudipan S.A.S
-                      </p>
-                    </div>
-                    <div className="p-2 bg-white rounded-xl border border-indigo-200 text-center">
-                      <QrCode className="w-8 h-8 text-indigo-900 mx-auto" />
-                      <span className="text-[8px] font-bold text-stone-500">QR NEQUI</span>
-                    </div>
+              {/* Header */}
+              <div className="p-5 sm:p-6 bg-gradient-to-r from-emerald-500/10 via-amber-400/5 to-transparent border-b border-amber-200/80 dark:border-stone-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 flex items-center justify-center font-bold">
+                    <DollarSign className="w-5 h-5" />
                   </div>
-
-                  <div className="space-y-2 pt-2 border-t border-indigo-200/60 dark:border-stone-800">
-                    <div>
-                      <label className="block text-[11px] font-bold text-stone-700 dark:text-stone-300 mb-1">
-                        Número de Aprobación / Referencia Nequi *
-                      </label>
-                      <input
-                        type="text"
-                        value={abonoReferencia}
-                        onChange={(e) => setAbonoReferencia(e.target.value)}
-                        placeholder="Ej. M98765432"
-                        className="w-full p-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold text-stone-700 dark:text-stone-300 mb-1">
-                        Captura del Comprobante
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => abonoFileInputRef.current?.click()}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded-xl text-xs font-bold hover:bg-stone-50 dark:hover:bg-stone-800"
-                        >
-                          <Camera className="w-3.5 h-3.5 text-indigo-600" />
-                          <span>{abonoComprobanteBase64 ? 'Cambiar Captura' : 'Subir Comprobante'}</span>
-                        </button>
-                        {abonoComprobanteBase64 && (
-                          <span className="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
-                            <Check className="w-3.5 h-3.5" /> Adjuntado
-                          </span>
-                        )}
-                        <input
-                          ref={abonoFileInputRef}
-                          type="file"
-                          accept="image/*"
-                          onChange={handleAbonoFileChange}
-                          className="hidden"
-                        />
-                      </div>
-                    </div>
+                  <div>
+                    <h3 className="text-lg font-heading font-extrabold text-stone-900 dark:text-stone-100">
+                      Registrar Abono a Deuda de Cliente
+                    </h3>
+                    <p className="text-xs text-stone-500 dark:text-stone-400">
+                      Filtra por cliente para consultar sus deudas, registrar abono y actualizar saldos
+                    </p>
                   </div>
                 </div>
-              )}
-
-              {/* Concept input */}
-              <div>
-                <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-                  Concepto / Observación (Opcional)
-                </label>
-                <input
-                  type="text"
-                  value={abonoConcepto}
-                  onChange={(e) => setAbonoConcepto(e.target.value)}
-                  placeholder="Ej. Abono nómina / pago quincenal..."
-                  className="w-full p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-xs"
-                />
-              </div>
-
-              {/* Action buttons */}
-              <div className="pt-3 flex items-center justify-end gap-2 border-t border-stone-200 dark:border-stone-800">
                 <button
                   type="button"
                   onClick={() => setIsAbonoModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-stone-300 dark:border-stone-700 text-xs font-bold text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800"
+                  className="p-1.5 rounded-xl text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer"
                 >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmittingAbono}
-                  className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/20 disabled:opacity-50"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{isSubmittingAbono ? 'Procesando...' : `Registrar Abono de ${formatCurrency(abonoMonto)}`}</span>
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
+
+              {/* Form Body */}
+              <form onSubmit={handleRegistrarAbono} className="p-5 sm:p-6 overflow-y-auto space-y-5">
+                {abonoMessage && (
+                  <div className={`p-4 rounded-2xl border text-xs font-semibold flex items-center gap-3 ${abonoMessage.type === 'success'
+                      ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30'
+                      : 'bg-red-500/15 text-red-800 dark:text-red-300 border-red-500/30'
+                    }`}>
+                    {abonoMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                    <span>{abonoMessage.text}</span>
+                  </div>
+                )}
+
+                {/* 1. SELECCIÓN Y FILTRO DE CLIENTE */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <label className="text-xs font-bold text-stone-700 dark:text-stone-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-amber-600" />
+                      1. Filtrar y Seleccionar Cliente *
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={() => setFilterSoloConDeuda(!filterSoloConDeuda)}
+                      className={`text-[11px] font-bold px-2.5 py-1 rounded-xl border flex items-center gap-1.5 transition-colors cursor-pointer ${
+                        filterSoloConDeuda
+                          ? 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/40'
+                          : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border-stone-300 dark:border-stone-700'
+                      }`}
+                    >
+                      <Filter className="w-3 h-3" />
+                      Solo con Deuda ({clientesConDeudaCount})
+                    </button>
+                  </div>
+
+                  {/* Input de Búsqueda */}
+                  <div className="relative">
+                    <Search className="w-4 h-4 absolute left-3 top-2.5 text-stone-400" />
+                    <input
+                      type="text"
+                      value={clienteSearch}
+                      onChange={(e) => setClienteSearch(e.target.value)}
+                      placeholder="Buscar por nombre, cédula o correo..."
+                      className="w-full pl-9 pr-8 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-xs text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                    />
+                    {clienteSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setClienteSearch('')}
+                        className="absolute right-2.5 top-2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Lista de Clientes con scroll */}
+                  <div className="border border-stone-200 dark:border-stone-800 rounded-2xl max-h-44 overflow-y-auto p-1.5 space-y-1 bg-stone-50/50 dark:bg-stone-950/40">
+                    {loadingClientes ? (
+                      <div className="py-4 text-center text-xs text-stone-500 flex items-center justify-center gap-2">
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-600" />
+                        Cargando clientes...
+                      </div>
+                    ) : filteredClientes.length === 0 ? (
+                      <div className="py-4 text-center text-xs text-stone-500">
+                        No se encontraron clientes con el filtro aplicado.
+                      </div>
+                    ) : (
+                      filteredClientes.map((c) => {
+                        const isSelected = selectedClient?.id === c.id;
+                        const cDeuda = c.deudaActual || 0;
+                        const cLimite = c.limiteCredito || 0;
+                        const cCupo = Math.max(0, cLimite - cDeuda);
+
+                        return (
+                          <div
+                            key={c.id}
+                            onClick={() => handleSelectClient(c)}
+                            className={`p-2.5 rounded-xl cursor-pointer transition-all flex items-center justify-between gap-3 text-xs ${
+                              isSelected
+                                ? 'bg-amber-500/20 dark:bg-amber-900/40 border border-amber-500/50 text-stone-900 dark:text-stone-100 shadow-sm'
+                                : 'hover:bg-stone-100 dark:hover:bg-stone-800/60 border border-transparent'
+                            }`}
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-extrabold truncate">
+                                  {c.nombre || `${c.primerNombre || ''} ${c.primerApellido || ''}`.trim() || c.email}
+                                </span>
+                                {c.rol && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-stone-200 dark:bg-stone-800 text-stone-600 dark:text-stone-400">
+                                    {c.rol}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-stone-500 dark:text-stone-400 truncate">
+                                C.C: {c.cedula || 'Sin documento'} | Cupo: {formatCurrency(cCupo)}
+                              </p>
+                            </div>
+
+                            <div className="text-right shrink-0">
+                              <span
+                                className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-extrabold ${
+                                  cDeuda > 0
+                                    ? 'bg-red-500/20 text-red-700 dark:text-red-300'
+                                    : 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400'
+                                }`}
+                              >
+                                {cDeuda > 0 ? `Debe: ${formatCurrency(cDeuda)}` : 'Al día ($0)'}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* TARJETA DE SALDOS DEL CLIENTE SELECCIONADO */}
+                {activeClient && (
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/5 via-stone-50 to-stone-100/60 dark:from-stone-900 dark:via-stone-900 dark:to-stone-950 border border-amber-300/60 dark:border-stone-800 space-y-3">
+                    <div className="flex items-center justify-between border-b border-amber-200/60 dark:border-stone-800 pb-2">
+                      <div className="flex items-center gap-2">
+                        <UserCheck className="w-4 h-4 text-emerald-600" />
+                        <span className="text-xs font-extrabold text-stone-800 dark:text-stone-200">
+                          {activeClient.nombre || `${activeClient.primerNombre || ''} ${activeClient.primerApellido || ''}`.trim() || activeClient.email}
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-stone-500">
+                        C.C: {activeClient.cedula || 'N/A'}
+                      </span>
+                    </div>
+
+                    {/* Saldos Débito y Crédito */}
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="p-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-red-700 dark:text-red-400">
+                          Saldo Débito (Deuda)
+                        </p>
+                        <p className="text-sm font-black text-red-600 dark:text-red-400">
+                          {formatCurrency(targetDeuda)}
+                        </p>
+                      </div>
+
+                      <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">
+                          Límite Crédito
+                        </p>
+                        <p className="text-sm font-black text-blue-600 dark:text-blue-400">
+                          {formatCurrency(targetLimite)}
+                        </p>
+                      </div>
+
+                      <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                          Cupo Disponible
+                        </p>
+                        <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                          {formatCurrency(targetCupo)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Proyección del Abono */}
+                    {abonoMonto > 0 && (
+                      <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5 text-stone-700 dark:text-stone-300 font-semibold">
+                          <CheckCheck className="w-4 h-4 text-emerald-600" />
+                          <span>Tras abonar {formatCurrency(abonoMonto)}:</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-[11px] font-bold">
+                          <span className="text-stone-600 dark:text-stone-400">
+                            Nueva Deuda: <strong className="text-red-600">{formatCurrency(proyectadaDeuda)}</strong>
+                          </span>
+                          <span className="text-stone-600 dark:text-stone-400">
+                            Nuevo Cupo: <strong className="text-emerald-600">{formatCurrency(proyectadoCupo)}</strong>
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 2. MONTO DEL ABONO */}
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 uppercase tracking-wider mb-2">
+                    2. Monto a Abonar ($) *
+                  </label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {targetDeuda > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setAbonoMonto(targetDeuda)}
+                        className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${abonoMonto === targetDeuda
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                            : 'bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-300 hover:bg-red-500/20'
+                          }`}
+                      >
+                        Pagar Total Deuda ({formatCurrency(targetDeuda)})
+                      </button>
+                    )}
+                    {[10000, 20000, 50000, 100000].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setAbonoMonto(amt)}
+                        className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${abonoMonto === amt
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                            : 'bg-stone-50 dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:border-emerald-500'
+                          }`}
+                      >
+                        {formatCurrency(amt)}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-2.5 text-stone-400 font-bold text-sm">$</span>
+                    <input
+                      type="number"
+                      required
+                      min={100}
+                      value={abonoMonto || ''}
+                      onChange={(e) => setAbonoMonto(parseFloat(e.target.value) || 0)}
+                      placeholder="Digita el valor a abonar..."
+                      className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                    />
+                  </div>
+                </div>
+
+                {/* 3. MÉTODO DE PAGO */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 uppercase tracking-wider">
+                    3. Método de Pago del Abono
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setAbonoMetodo('Efectivo')}
+                      className={`p-3 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer ${abonoMetodo === 'Efectivo'
+                          ? 'bg-emerald-500/15 border-emerald-500 text-emerald-900 dark:text-emerald-200 shadow-sm'
+                          : 'bg-stone-50 dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400'
+                        }`}
+                    >
+                      <DollarSign className="w-5 h-5 text-emerald-600" />
+                      <div>
+                        <p className="text-xs font-extrabold uppercase">Contado / Efectivo</p>
+                        <p className="text-[10px] text-stone-500">Recibido en caja</p>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setAbonoMetodo('Nequi')}
+                      className={`p-3 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer ${abonoMetodo === 'Nequi'
+                          ? 'bg-indigo-500/15 border-indigo-500 text-indigo-900 dark:text-indigo-200 shadow-sm'
+                          : 'bg-stone-50 dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400'
+                        }`}
+                    >
+                      <QrCode className="w-5 h-5 text-indigo-600" />
+                      <div>
+                        <p className="text-xs font-extrabold uppercase">Nequi (QR / Transf.)</p>
+                        <p className="text-[10px] text-stone-500">Transferencia bancaria</p>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* NEQUI INSTRUCTIONS & VOUCHER UPLOAD */}
+                {abonoMetodo === 'Nequi' && (
+                  <div className="p-4 rounded-2xl bg-indigo-50/80 dark:bg-stone-950 border border-indigo-200 dark:border-indigo-900/60 space-y-3 animate-fade-in">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-bold text-indigo-950 dark:text-indigo-200">
+                          Número Nequi Claudipan: <strong className="font-mono text-sm">312 456 7890</strong>
+                        </p>
+                        <p className="text-[11px] text-stone-500">
+                          Titular: Panadería Claudipan S.A.S
+                        </p>
+                      </div>
+                      <div className="p-2 bg-white rounded-xl border border-indigo-200 text-center">
+                        <QrCode className="w-8 h-8 text-indigo-900 mx-auto" />
+                        <span className="text-[8px] font-bold text-stone-500">QR NEQUI</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t border-indigo-200/60 dark:border-stone-800">
+                      <div>
+                        <label className="block text-[11px] font-bold text-stone-700 dark:text-stone-300 mb-1">
+                          Número de Aprobación / Referencia Nequi *
+                        </label>
+                        <input
+                          type="text"
+                          value={abonoReferencia}
+                          onChange={(e) => setAbonoReferencia(e.target.value)}
+                          placeholder="Ej. M98765432"
+                          className="w-full p-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-stone-700 dark:text-stone-300 mb-1">
+                          Captura del Comprobante
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => abonoFileInputRef.current?.click()}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded-xl text-xs font-bold hover:bg-stone-50 dark:hover:bg-stone-800 cursor-pointer"
+                          >
+                            <Camera className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>{abonoComprobanteBase64 ? 'Cambiar Captura' : 'Subir Comprobante'}</span>
+                          </button>
+                          {abonoComprobanteBase64 && (
+                            <span className="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
+                              <Check className="w-3.5 h-3.5" /> Adjuntado
+                            </span>
+                          )}
+                          <input
+                            ref={abonoFileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleAbonoFileChange}
+                            className="hidden"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. CONCEPTO */}
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+                    4. Concepto / Observación (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={abonoConcepto}
+                    onChange={(e) => setAbonoConcepto(e.target.value)}
+                    placeholder="Ej. Abono a deuda / recibo en mostrador..."
+                    className="w-full p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-xs text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                  />
+                </div>
+
+                {/* Action buttons */}
+                <div className="pt-3 flex items-center justify-end gap-2 border-t border-stone-200 dark:border-stone-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsAbonoModalOpen(false)}
+                    className="px-4 py-2 rounded-xl border border-stone-300 dark:border-stone-700 text-xs font-bold text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingAbono || !activeClient || abonoMonto <= 0}
+                    className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>
+                      {isSubmittingAbono
+                        ? 'Procesando Abono...'
+                        : `Registrar Abono de ${formatCurrency(abonoMonto)}`}
+                    </span>
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

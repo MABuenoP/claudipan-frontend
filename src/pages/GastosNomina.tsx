@@ -560,7 +560,7 @@ export const GastosNomina: React.FC = () => {
               <tr key={g.id} className="hover:bg-rose-50/40 dark:hover:bg-stone-800/40 transition-colors">
                 <td className="py-3 px-4">
                   <p className="font-mono font-bold text-rose-700 dark:text-rose-400">{g.numeroComprobante || `REC-${g.id}`}</p>
-                  <p className="text-[10px] text-stone-500">{new Date(g.fechaGasto).toLocaleDateString('es-CO')}</p>
+                  <p className="text-[10px] text-stone-500">{new Date(g.fechaGasto).toLocaleDateString('es-CO')} {new Date(g.fechaGasto).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</p>
                 </td>
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-2">

@@ -5,10 +5,10 @@ import { productService, Product } from '../services/productService';
 import { pedidoService } from '../services/pedidoService';
 import { authService, UsuarioAdmin } from '../services/authService';
 import { formatCurrency } from '../utils/helpers';
-import { 
-  ShoppingCart, Search, Plus, Minus, Trash2, CheckCircle2, 
-  DollarSign, User, AlertCircle, RefreshCw, Printer, Sparkles, 
-  CreditCard, ArrowRight, Tag, Flame, X, Camera, Upload, 
+import {
+  ShoppingCart, Search, Plus, Minus, Trash2, CheckCircle2,
+  DollarSign, User, AlertCircle, RefreshCw, Printer, Sparkles,
+  CreditCard, ArrowRight, Tag, Flame, X, Camera, Upload,
   FileText, Smartphone, UserCheck, AlertTriangle, ShieldCheck
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -24,14 +24,14 @@ export const VentasPOS: React.FC = () => {
   const [panPriceFilter, setPanPriceFilter] = useState<'todos' | '500' | '1000' | '2000' | '5000'>('todos');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  
+
   // Pagination State for POS Product Table (10 items per page)
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 10;
 
   // Cart for POS
   const [cart, setCart] = useState<{ product: Product; quantity: number }[]>([]);
-  
+
   // Checkout Modal State & Payment Options
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [tipoPago, setTipoPago] = useState<'Efectivo' | 'Nequi' | 'Credito_Fiado'>('Efectivo');
@@ -39,7 +39,7 @@ export const VentasPOS: React.FC = () => {
   const [documentoCliente, setDocumentoCliente] = useState('');
   const [telefonoCliente, setTelefonoCliente] = useState('');
   const [efectivoRecibido, setEfectivoRecibido] = useState<number | ''>('');
-  
+
   // Nequi / Transferencia state
   const [referenciaPago, setReferenciaPago] = useState('');
   const [comprobanteBase64, setComprobanteBase64] = useState<string | null>(null);
@@ -106,8 +106,8 @@ export const VentasPOS: React.FC = () => {
           });
           return prev;
         }
-        return prev.map(item => 
-          item.product.id === product.id 
+        return prev.map(item =>
+          item.product.id === product.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
@@ -156,26 +156,26 @@ export const VentasPOS: React.FC = () => {
   const filteredProducts = products.filter(p => {
     let matchCat = true;
     if (selectedCategory === 'panes') {
-      const isDrinkOrDairy = p.categoriaNombre?.toLowerCase().includes('gaseosa') || 
-                             p.categoriaNombre?.toLowerCase().includes('bebida') ||
-                             p.categoriaNombre?.toLowerCase().includes('lácteo') ||
-                             p.categoriaNombre?.toLowerCase().includes('lacteo') ||
-                             p.nombre.toLowerCase().includes('gaseosa') ||
-                             p.nombre.toLowerCase().includes('postobon') ||
-                             p.nombre.toLowerCase().includes('coca-cola') ||
-                             p.nombre.toLowerCase().includes('leche') ||
-                             p.nombre.toLowerCase().includes('queso') ||
-                             p.nombre.toLowerCase().includes('kumis');
-      
-      const isPan = !isDrinkOrDairy || 
-                    p.categoriaNombre?.toLowerCase().includes('pan') || 
-                    p.nombre.toLowerCase().includes('pan') ||
-                    p.nombre.toLowerCase().includes('bolita') ||
-                    p.nombre.toLowerCase().includes('croissant') ||
-                    p.nombre.toLowerCase().includes('roscon') ||
-                    p.nombre.toLowerCase().includes('mogolla') ||
-                    p.nombre.toLowerCase().includes('hojaldre') ||
-                    p.nombre.toLowerCase().includes('tostada');
+      const isDrinkOrDairy = p.categoriaNombre?.toLowerCase().includes('gaseosa') ||
+        p.categoriaNombre?.toLowerCase().includes('bebida') ||
+        p.categoriaNombre?.toLowerCase().includes('lácteo') ||
+        p.categoriaNombre?.toLowerCase().includes('lacteo') ||
+        p.nombre.toLowerCase().includes('gaseosa') ||
+        p.nombre.toLowerCase().includes('postobon') ||
+        p.nombre.toLowerCase().includes('coca-cola') ||
+        p.nombre.toLowerCase().includes('leche') ||
+        p.nombre.toLowerCase().includes('queso') ||
+        p.nombre.toLowerCase().includes('kumis');
+
+      const isPan = !isDrinkOrDairy ||
+        p.categoriaNombre?.toLowerCase().includes('pan') ||
+        p.nombre.toLowerCase().includes('pan') ||
+        p.nombre.toLowerCase().includes('bolita') ||
+        p.nombre.toLowerCase().includes('croissant') ||
+        p.nombre.toLowerCase().includes('roscon') ||
+        p.nombre.toLowerCase().includes('mogolla') ||
+        p.nombre.toLowerCase().includes('hojaldre') ||
+        p.nombre.toLowerCase().includes('tostada');
 
       matchCat = isPan;
 
@@ -183,29 +183,29 @@ export const VentasPOS: React.FC = () => {
         matchCat = p.precio === Number(panPriceFilter);
       }
     } else if (selectedCategory === 'gaseosas') {
-      matchCat = p.categoriaNombre?.toLowerCase().includes('gaseosa') || 
-                 p.categoriaNombre?.toLowerCase().includes('bebida') ||
-                 p.nombre.toLowerCase().includes('gaseosa') || 
-                 p.nombre.toLowerCase().includes('cola') || 
-                 p.nombre.toLowerCase().includes('postobon') || 
-                 p.nombre.toLowerCase().includes('hit') ||
-                 p.nombre.toLowerCase().includes('jugo') ||
-                 p.nombre.toLowerCase().includes('agua') ||
-                 p.nombre.toLowerCase().includes('quatro') ||
-                 p.nombre.toLowerCase().includes('sprite');
+      matchCat = p.categoriaNombre?.toLowerCase().includes('gaseosa') ||
+        p.categoriaNombre?.toLowerCase().includes('bebida') ||
+        p.nombre.toLowerCase().includes('gaseosa') ||
+        p.nombre.toLowerCase().includes('cola') ||
+        p.nombre.toLowerCase().includes('postobon') ||
+        p.nombre.toLowerCase().includes('hit') ||
+        p.nombre.toLowerCase().includes('jugo') ||
+        p.nombre.toLowerCase().includes('agua') ||
+        p.nombre.toLowerCase().includes('quatro') ||
+        p.nombre.toLowerCase().includes('sprite');
     } else if (selectedCategory === 'lacteos') {
-      matchCat = p.categoriaNombre?.toLowerCase().includes('lácteo') || 
-                 p.categoriaNombre?.toLowerCase().includes('lacteo') || 
-                 p.nombre.toLowerCase().includes('leche') || 
-                 p.nombre.toLowerCase().includes('queso') || 
-                 p.nombre.toLowerCase().includes('kumis') ||
-                 p.nombre.toLowerCase().includes('yogurt') ||
-                 p.nombre.toLowerCase().includes('mantequilla') ||
-                 p.nombre.toLowerCase().includes('arequipe');
+      matchCat = p.categoriaNombre?.toLowerCase().includes('lácteo') ||
+        p.categoriaNombre?.toLowerCase().includes('lacteo') ||
+        p.nombre.toLowerCase().includes('leche') ||
+        p.nombre.toLowerCase().includes('queso') ||
+        p.nombre.toLowerCase().includes('kumis') ||
+        p.nombre.toLowerCase().includes('yogurt') ||
+        p.nombre.toLowerCase().includes('mantequilla') ||
+        p.nombre.toLowerCase().includes('arequipe');
     }
 
-    const matchSearch = !searchQuery.trim() || 
-      p.nombre.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const matchSearch = !searchQuery.trim() ||
+      p.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (p.descripcion && p.descripcion.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (p.categoriaNombre && p.categoriaNombre.toLowerCase().includes(searchQuery.toLowerCase())) ||
       p.precio.toString().includes(searchQuery.trim());
@@ -340,15 +340,15 @@ export const VentasPOS: React.FC = () => {
   const filteredClients = usuariosClientes.filter(u => {
     const q = clienteSearch.toLowerCase().trim();
     if (!q) return true;
-    return u.nombre.toLowerCase().includes(q) || 
-           (u.cedula && u.cedula.includes(q)) || 
-           (u.telefono && u.telefono.includes(q)) ||
-           (u.email && u.email.toLowerCase().includes(q));
+    return u.nombre.toLowerCase().includes(q) ||
+      (u.cedula && u.cedula.includes(q)) ||
+      (u.telefono && u.telefono.includes(q)) ||
+      (u.email && u.email.toLowerCase().includes(q));
   });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      
+
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-amber-700 text-white p-6 rounded-3xl shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -379,10 +379,10 @@ export const VentasPOS: React.FC = () => {
 
       {/* Main Grid: Cart/Ticket on Left (5 cols) vs Products on Right (7 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
+
         {/* Left Column: POS Cart & Checkout Terminal (5 cols) */}
         <div className="lg:col-span-5 bg-white dark:bg-stone-900 border border-amber-300/80 dark:border-stone-800 rounded-3xl p-5 shadow-xl space-y-4 flex flex-col justify-between">
-          
+
           <div className="space-y-4">
             {/* Cart Header */}
             <div className="flex items-center justify-between pb-3 border-b border-amber-200/80 dark:border-stone-800">
@@ -415,7 +415,7 @@ export const VentasPOS: React.FC = () => {
             ) : (
               <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
                 {cart.map(item => (
-                  <div 
+                  <div
                     key={item.product.id}
                     className="flex items-center justify-between p-2.5 bg-amber-50/50 dark:bg-stone-950/50 rounded-2xl border border-amber-200/60 dark:border-stone-800 text-xs"
                   >
@@ -493,7 +493,7 @@ export const VentasPOS: React.FC = () => {
               onClick={handleOpenCheckoutModal}
               leftIcon={<CheckCircle2 className="w-5 h-5 shrink-0" />}
             >
-              Cobrar
+              Generar Venta
             </Button>
           </div>
 
@@ -501,7 +501,7 @@ export const VentasPOS: React.FC = () => {
 
         {/* Right Column: Products Table Catalog (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
-          
+
           {/* Main Category Filter Buttons */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
             {[
@@ -517,11 +517,10 @@ export const VentasPOS: React.FC = () => {
                   if (tab.id !== 'panes') setPanPriceFilter('todos');
                   setCurrentPage(1);
                 }}
-                className={`px-4 py-2 rounded-2xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
-                  selectedCategory === tab.id
+                className={`px-4 py-2 rounded-2xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${selectedCategory === tab.id
                     ? 'bg-amber-800 text-white shadow-md shadow-amber-900/20 scale-102'
                     : 'bg-white dark:bg-stone-900 border border-amber-200/80 dark:border-stone-800 text-stone-700 dark:text-stone-300 hover:border-amber-500'
-                }`}
+                  }`}
               >
                 <span>{tab.icon}</span>
                 <span>{tab.label}</span>
@@ -549,11 +548,10 @@ export const VentasPOS: React.FC = () => {
                       setPanPriceFilter(sub.id as any);
                       setCurrentPage(1);
                     }}
-                    className={`px-3 py-1 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
-                      panPriceFilter === sub.id
+                    className={`px-3 py-1 text-xs font-bold rounded-xl border transition-all cursor-pointer ${panPriceFilter === sub.id
                         ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
                         : 'bg-white dark:bg-stone-900 border-amber-200/80 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:border-amber-400'
-                    }`}
+                      }`}
                   >
                     {sub.label}
                   </button>
@@ -606,21 +604,20 @@ export const VentasPOS: React.FC = () => {
                   filteredProducts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map(p => {
                     const isOutOfStock = p.stock <= 0;
                     return (
-                      <tr 
+                      <tr
                         key={p.id}
-                        className={`transition-colors group cursor-pointer ${
-                          isOutOfStock 
-                            ? 'opacity-60 bg-stone-50/60 dark:bg-stone-950/40' 
+                        className={`transition-colors group cursor-pointer ${isOutOfStock
+                            ? 'opacity-60 bg-stone-50/60 dark:bg-stone-950/40'
                             : 'hover:bg-amber-50/50 dark:hover:bg-stone-800/40'
-                        }`}
+                          }`}
                         onClick={() => addToCart(p)}
                       >
                         {/* Image Thumbnail */}
                         <td className="py-2 px-3 text-center">
                           <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-stone-950 border border-amber-200/60 dark:border-stone-800 overflow-hidden mx-auto relative shrink-0">
-                            <img 
-                              src={p.imagenUrl || '/logo.png'} 
-                              alt={p.nombre} 
+                            <img
+                              src={p.imagenUrl || '/logo.png'}
+                              alt={p.nombre}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                             />
                             {p.enOferta && (
@@ -652,13 +649,12 @@ export const VentasPOS: React.FC = () => {
 
                         {/* Stock Badge */}
                         <td className="py-2 px-3 text-center">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            p.stock > 10 
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' 
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${p.stock > 10
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
                               : p.stock > 0
-                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                              : 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300'
-                          }`}>
+                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                : 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300'
+                            }`}>
                             {isOutOfStock ? 'Agotado' : `${p.stock} u.`}
                           </span>
                         </td>
@@ -672,11 +668,10 @@ export const VentasPOS: React.FC = () => {
                               e.stopPropagation();
                               addToCart(p);
                             }}
-                            className={`px-2.5 py-1.5 font-extrabold text-[11px] rounded-xl shadow-sm inline-flex items-center gap-1 transition-transform active:scale-95 cursor-pointer ${
-                              isOutOfStock
+                            className={`px-2.5 py-1.5 font-extrabold text-[11px] rounded-xl shadow-sm inline-flex items-center gap-1 transition-transform active:scale-95 cursor-pointer ${isOutOfStock
                                 ? 'bg-stone-300 dark:bg-stone-800 text-stone-500 cursor-not-allowed'
                                 : 'bg-amber-800 hover:bg-amber-700 text-white'
-                            }`}
+                              }`}
                           >
                             <Plus className="w-3.5 h-3.5" /> Agregar
                           </button>
@@ -710,7 +705,7 @@ export const VentasPOS: React.FC = () => {
       {isCheckoutModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white dark:bg-stone-900 border border-amber-300 dark:border-stone-700 rounded-3xl p-6 max-w-xl w-full space-y-5 shadow-2xl animate-fade-in max-h-[92vh] overflow-y-auto">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-stone-200 dark:border-stone-800">
               <div className="flex items-center gap-3">
@@ -764,11 +759,10 @@ export const VentasPOS: React.FC = () => {
                       setTipoPago(op.id as any);
                       setErrorMessage(null);
                     }}
-                    className={`py-3 px-2 rounded-2xl border text-xs font-extrabold flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                      tipoPago === op.id
+                    className={`py-3 px-2 rounded-2xl border text-xs font-extrabold flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${tipoPago === op.id
                         ? 'bg-amber-800 text-white border-amber-800 shadow-md shadow-amber-900/20 scale-102'
                         : 'bg-stone-50 dark:bg-stone-950 border-stone-200 dark:border-stone-800 text-stone-700 dark:text-stone-300 hover:border-amber-400'
-                    }`}
+                      }`}
                   >
                     <span>{op.icon}</span>
                     <span>{op.label}</span>
@@ -819,7 +813,7 @@ export const VentasPOS: React.FC = () => {
                         onClick={() => setEfectivoRecibido(val)}
                         className="py-1 text-[11px] font-bold bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg hover:bg-amber-100 hover:border-amber-400 cursor-pointer"
                       >
-                        ${(val/1000)}k
+                        ${(val / 1000)}k
                       </button>
                     ))}
                   </div>
@@ -888,21 +882,21 @@ export const VentasPOS: React.FC = () => {
                     Foto del Comprobante / Transacción (Opcional):
                   </label>
 
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    accept="image/*" 
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
                     capture="environment"
-                    onChange={handleImageFileChange} 
-                    className="hidden" 
+                    onChange={handleImageFileChange}
+                    className="hidden"
                   />
 
                   {comprobanteBase64 ? (
                     <div className="relative p-2 bg-white dark:bg-stone-900 rounded-xl border border-emerald-300 dark:border-emerald-800 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
-                        <img 
-                          src={comprobanteBase64} 
-                          alt="Comprobante" 
+                        <img
+                          src={comprobanteBase64}
+                          alt="Comprobante"
                           className="w-12 h-12 object-cover rounded-lg border border-stone-200 dark:border-stone-700"
                         />
                         <div className="text-xs">
@@ -992,11 +986,10 @@ export const VentasPOS: React.FC = () => {
                             setSelectedClient(c);
                             setErrorMessage(null);
                           }}
-                          className={`p-2 rounded-lg text-xs flex items-center justify-between cursor-pointer transition-colors ${
-                            isSelected
+                          className={`p-2 rounded-lg text-xs flex items-center justify-between cursor-pointer transition-colors ${isSelected
                               ? 'bg-purple-100 dark:bg-purple-950/60 border border-purple-400'
                               : 'hover:bg-stone-50 dark:hover:bg-stone-800'
-                          }`}
+                            }`}
                         >
                           <div>
                             <p className="font-bold text-stone-900 dark:text-stone-100">{c.nombre}</p>
@@ -1019,19 +1012,17 @@ export const VentasPOS: React.FC = () => {
                   const cupoDisponible = selectedClient.limiteCredito - selectedClient.deudaActual;
                   const tieneCupo = cupoDisponible >= subtotal;
                   return (
-                    <div className={`p-3 rounded-xl border text-xs space-y-2 ${
-                      tieneCupo
+                    <div className={`p-3 rounded-xl border text-xs space-y-2 ${tieneCupo
                         ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800'
                         : 'bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800'
-                    }`}>
+                      }`}>
                       <div className="flex items-center justify-between">
                         <div>
                           <span className="font-bold text-stone-900 dark:text-stone-100">{selectedClient.nombre}</span>
                           <p className="text-[10px] text-stone-500">C.C. {selectedClient.cedula || 'No registrada'}</p>
                         </div>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          tieneCupo ? 'bg-emerald-200 text-emerald-900' : 'bg-red-200 text-red-900'
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${tieneCupo ? 'bg-emerald-200 text-emerald-900' : 'bg-red-200 text-red-900'
+                          }`}>
                           {tieneCupo ? '✓ Crédito Aprobado' : '⚠️ Cupo Insuficiente'}
                         </span>
                       </div>
@@ -1121,7 +1112,7 @@ export const VentasPOS: React.FC = () => {
               <h3 className="font-heading font-extrabold text-lg text-stone-900 dark:text-stone-100">
                 ¡Venta Registrada y Entregada!
               </h3>
-              <p className="text-xs text-stone-500">Ticket #{ticketEmitido.pedido?.id || Math.floor(Math.random()*9000+1000)}</p>
+              <p className="text-xs text-stone-500">Ticket #{ticketEmitido.pedido?.id || Math.floor(Math.random() * 9000 + 1000)}</p>
               <p className="text-[11px] text-emerald-600 font-bold mt-1">Inventarios actualizados en tiempo real</p>
             </div>
 

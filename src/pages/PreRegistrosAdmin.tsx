@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  UserCheck, UserX, Eye, Edit2, Search, X,
+  UserCheck, UserX, Eye, Search, X,
   FileSpreadsheet, RefreshCw, Shield, DollarSign,
   CreditCard, CheckCircle2, AlertCircle, Phone, Mail, MapPin,
   Calendar, Lock, Clock, EyeOff, UserPlus, FileText, Check, AlertTriangle
 } from 'lucide-react';
 import {
   authService,
-  PreRegistroAdmin,
-  UpdatePreRegistroAdminRequest
+  PreRegistroAdmin
 } from '../services/authService';
 import { Pagination } from '../components/ui/Pagination';
 import { useAuth } from '../hooks/useAuth';
@@ -41,24 +40,6 @@ export const PreRegistrosAdmin: React.FC = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewingRecord, setViewingRecord] = useState<PreRegistroAdmin | null>(null);
   const [showPlainPasswordView, setShowPlainPasswordView] = useState(false);
-
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [showPlainPasswordEdit, setShowPlainPasswordEdit] = useState(false);
-
-  const [editForm, setEditForm] = useState<UpdatePreRegistroAdminRequest>({
-    primerNombre: '',
-    segundoNombre: '',
-    primerApellido: '',
-    segundoApellido: '',
-    cedula: '',
-    email: '',
-    passwordPlana: '',
-    telefono: '',
-    direccion: '',
-    redesSociales: '',
-    limiteCredito: 500000,
-  });
 
   // Fetch pre-registros
   const fetchPreRegistros = async () => {
@@ -141,55 +122,6 @@ export const PreRegistrosAdmin: React.FC = () => {
     setViewingRecord(record);
     setShowPlainPasswordView(false);
     setIsViewModalOpen(true);
-  };
-
-  const handleOpenEditModal = (record: PreRegistroAdmin) => {
-    setEditingId(record.id);
-    setEditForm({
-      primerNombre: record.primerNombre || '',
-      segundoNombre: record.segundoNombre || '',
-      primerApellido: record.primerApellido || '',
-      segundoApellido: record.segundoApellido || '',
-      nombre: record.nombre || '',
-      cedula: record.cedula || '',
-      email: record.email || '',
-      passwordPlana: record.passwordPlana || '',
-      telefono: record.telefono || '',
-      direccion: record.direccion || '',
-      redesSociales: record.redesSociales || '',
-      limiteCredito: record.limiteCredito || 0,
-      fotoBase64: record.fotoBase64 || '',
-    });
-    setShowPlainPasswordEdit(false);
-    setIsEditModalOpen(true);
-  };
-
-  const handleSaveEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingId) return;
-
-    if (!editForm.email?.trim()) {
-      showError('El correo electrónico es obligatorio');
-      return;
-    }
-
-    try {
-      setActionLoadingMessage('Guardando cambios en el pre-registro...');
-      setActionLoading(true);
-
-      const res = await authService.updatePreRegistroAdmin(editingId, editForm);
-      if (res.success && res.data) {
-        showSuccess('Pre-registro actualizado correctamente');
-        setIsEditModalOpen(false);
-        fetchPreRegistros();
-      } else {
-        showError(res.message || 'No se pudo actualizar el pre-registro');
-      }
-    } catch (err: any) {
-      showError(err.message || 'Error al actualizar el pre-registro');
-    } finally {
-      setActionLoading(false);
-    }
   };
 
   const handleValidate = async (record: PreRegistroAdmin) => {
@@ -345,24 +277,25 @@ export const PreRegistrosAdmin: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
+        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+          <button
             onClick={fetchPreRegistros}
             disabled={loading}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-white dark:bg-stone-900 border border-amber-200/80 dark:border-stone-800 text-xs font-bold text-stone-700 dark:text-stone-300 hover:border-amber-500 transition-all shadow-sm cursor-pointer disabled:opacity-50"
+            title="Refrescar solicitudes"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            <span>Actualizar</span>
-          </Button>
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-amber-600' : ''}`} />
+            <span className="hidden sm:inline">Actualizar</span>
+          </button>
 
           <Button
             variant="outline"
+            size="sm"
+            leftIcon={<FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
             onClick={handleExportExcel}
-            className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800"
+            className="!py-2.5 !px-3.5 text-emerald-700 dark:text-emerald-300 border-emerald-600 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 dark:hover:text-white cursor-pointer shadow-sm text-xs font-bold"
           >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>Exportar Excel</span>
+            Exportar Excel
           </Button>
         </div>
       </div>
@@ -585,46 +518,35 @@ export const PreRegistrosAdmin: React.FC = () => {
                       </td>
 
                       {/* Acciones */}
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* Ver Datos */}
+                      <td className="py-4 px-6 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {/* 1. Ver Datos */}
                           <button
                             onClick={() => handleOpenViewModal(item)}
-                            title="Ver datos completos"
-                            className="p-1.5 rounded-lg text-stone-500 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+                            title="Ver datos completos de la solicitud"
+                            className="p-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-colors cursor-pointer"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
 
-                          {/* Editar */}
-                          {canManage && (
-                            <button
-                              onClick={() => handleOpenEditModal(item)}
-                              title="Editar datos"
-                              className="p-1.5 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                          )}
-
-                          {/* Validar (Crear en Usuarios con MD5) */}
+                          {/* 2. Validar (Crear en Usuarios con MD5) */}
                           {canManage && isPending && (
                             <button
                               onClick={() => handleValidate(item)}
                               title="Validar y migrar a Usuarios (clave MD5)"
-                              className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1 shadow-sm transition-all"
+                              className="px-3 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition-colors cursor-pointer flex items-center gap-1.5 font-bold text-xs"
                             >
-                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <CheckCircle2 className="w-4 h-4" />
                               <span>Validar</span>
                             </button>
                           )}
 
-                          {/* Cancelar PreRegistro */}
+                          {/* 3. Cancelar PreRegistro */}
                           {canManage && isPending && (
                             <button
                               onClick={() => handleCancelAdmin(item)}
-                              title="Cancelar este pre-registro"
-                              className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                              title="Rechazar y cancelar solicitud"
+                              className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 transition-colors cursor-pointer"
                             >
                               <X className="w-4 h-4" />
                             </button>
@@ -781,33 +703,23 @@ export const PreRegistrosAdmin: React.FC = () => {
 
             {/* Modal Footer */}
             <div className="px-6 py-4 border-t border-stone-200 dark:border-stone-800 flex items-center justify-between bg-stone-50 dark:bg-stone-800/50">
-              <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setIsViewModalOpen(false)}
+                className="!py-2.5 !px-4 text-xs font-bold rounded-2xl cursor-pointer"
+              >
                 Cerrar
               </Button>
 
               <div className="flex items-center gap-2">
-                {canManage && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setIsViewModalOpen(false);
-                      handleOpenEditModal(viewingRecord);
-                    }}
-                    className="flex items-center gap-1.5"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                    <span>Editar Datos</span>
-                  </Button>
-                )}
-
                 {canManage && viewingRecord.estado.toLowerCase() === 'pendiente' && (
                   <Button
                     variant="primary"
                     onClick={() => handleValidate(viewingRecord)}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5"
+                    leftIcon={<CheckCircle2 className="w-4 h-4" />}
+                    className="!py-2.5 !px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-extrabold shadow-md shadow-emerald-700/20 cursor-pointer flex items-center gap-1.5"
                   >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Validar Usuario (MD5)</span>
+                    Validar Usuario (MD5)
                   </Button>
                 )}
               </div>
@@ -816,217 +728,6 @@ export const PreRegistrosAdmin: React.FC = () => {
         </div>
       )}
 
-      {/* ================= MODAL: EDITAR DATOS ================= */}
-      {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-stone-900 rounded-2xl max-w-2xl w-full border border-stone-200 dark:border-stone-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between bg-stone-50 dark:bg-stone-800/50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center">
-                  <Edit2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">
-                    Editar Pre-Registro #{editingId}
-                  </h3>
-                  <p className="text-xs text-stone-500">
-                    Modifique los datos antes de validar la cuenta
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsEditModalOpen(false)}
-                className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 p-1 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Body: Form */}
-            <form onSubmit={handleSaveEdit} className="flex flex-col flex-1 overflow-hidden">
-              <div className="p-6 space-y-4 overflow-y-auto flex-1">
-                {/* 4 Name Fields */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                      Primer Nombre *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={editForm.primerNombre || ''}
-                      onChange={(e) => setEditForm({ ...editForm, primerNombre: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                      Segundo Nombre
-                    </label>
-                    <input
-                      type="text"
-                      value={editForm.segundoNombre || ''}
-                      onChange={(e) => setEditForm({ ...editForm, segundoNombre: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                      Primer Apellido *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={editForm.primerApellido || ''}
-                      onChange={(e) => setEditForm({ ...editForm, primerApellido: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                      Segundo Apellido
-                    </label>
-                    <input
-                      type="text"
-                      value={editForm.segundoApellido || ''}
-                      onChange={(e) => setEditForm({ ...editForm, segundoApellido: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Cédula & Email */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                      Cédula / Documento
-                    </label>
-                    <input
-                      type="text"
-                      value={editForm.cedula || ''}
-                      onChange={(e) => setEditForm({ ...editForm, cedula: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                      Correo Electrónico *
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={editForm.email || ''}
-                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Password & Cupo */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                      Contraseña (Texto Plano)
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPlainPasswordEdit ? 'text' : 'password'}
-                        value={editForm.passwordPlana || ''}
-                        onChange={(e) => setEditForm({ ...editForm, passwordPlana: e.target.value })}
-                        placeholder="Contraseña registrada"
-                        className="w-full px-3 py-2 pr-10 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:ring-2 focus:ring-emerald-500 outline-none font-mono"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPlainPasswordEdit(!showPlainPasswordEdit)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200"
-                      >
-                        {showPlainPasswordEdit ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    <span className="text-[11px] text-stone-400 mt-1 block">
-                      Se cifrará en MD5 al validar.
-                    </span>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                      Cupo de Crédito ($ COP)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="50000"
-                      value={editForm.limiteCredito ?? 0}
-                      onChange={(e) => setEditForm({ ...editForm, limiteCredito: Number(e.target.value) })}
-                      className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:ring-2 focus:ring-emerald-500 outline-none font-semibold text-emerald-600"
-                    />
-                  </div>
-                </div>
-
-                {/* Teléfono & Dirección */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                      Teléfono / WhatsApp
-                    </label>
-                    <input
-                      type="text"
-                      value={editForm.telefono || ''}
-                      onChange={(e) => setEditForm({ ...editForm, telefono: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                      Dirección de Entrega
-                    </label>
-                    <input
-                      type="text"
-                      value={editForm.direccion || ''}
-                      onChange={(e) => setEditForm({ ...editForm, direccion: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Redes Sociales */}
-                <div>
-                  <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                    Redes Sociales (Instagram, Facebook, etc.)
-                  </label>
-                  <input
-                    type="text"
-                    value={editForm.redesSociales || ''}
-                    onChange={(e) => setEditForm({ ...editForm, redesSociales: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Modal Footer */}
-              <div className="px-6 py-4 border-t border-stone-200 dark:border-stone-800 flex items-center justify-end gap-3 bg-stone-50 dark:bg-stone-800/50">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsEditModalOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
-                >
-                  <Check className="w-4 h-4" />
-                  <span>Guardar Cambios</span>
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

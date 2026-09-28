@@ -299,7 +299,7 @@ export const Pedidos: React.FC = () => {
 
                     {/* Fecha */}
                     <td className="py-3.5 px-4 text-stone-500 dark:text-stone-400">
-                      {new Date(pedido.fechaPedido).toLocaleDateString()} {new Date(pedido.fechaPedido).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(pedido.fechaPedido).toLocaleDateString('es-CO')} {new Date(pedido.fechaPedido).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
                     </td>
 
                     {/* Cliente */}
